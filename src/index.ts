@@ -54,6 +54,7 @@ export class KuCoinWs extends Emittery {
     const { endpoint, pingInterval } = instanceServers[0];
 
     this.subscriptions = [];
+    this.askingClose = false;
     this.connectId = randomBytes(this.lengthConnectId).toString('hex');
     this.pingIntervalMs = pingInterval;
     this.wsPath = `${endpoint}?token=${token}&connectId=${this.connectId}`;
