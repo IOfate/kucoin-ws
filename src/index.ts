@@ -5,6 +5,9 @@ import got from 'got';
 
 /** Models */
 import { PublicToken } from './models/public-token.model';
+import { MessageData } from './models/message-data.model';
+import { RawTicker } from './models/raw-ticker';
+import { Ticker } from './models/ticker';
 
 export class KuCoinWs extends Emittery {
   private readonly publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
@@ -40,6 +43,32 @@ export class KuCoinWs extends Emittery {
     await this.openWebsocketConnection();
   }
 
+  subscribeTicker(symbol: string): void {
+    this.requireSocketToBeOpen();
+    this.ws.send(
+      JSON.stringify({
+        id: Date.now(),
+        type: 'unsubscribe',
+        topic: `/market/ticker:${symbol}`,
+        privateChannel: false,
+        response: true,
+      }),
+    );
+  }
+
+  unsubscribeTicker(symbol: string): void {
+    this.requireSocketToBeOpen();
+    this.ws.send(
+      JSON.stringify({
+        id: Date.now(),
+        type: 'subscribe',
+        topic: `/market/ticker:${symbol}`,
+        privateChannel: false,
+        response: true,
+      }),
+    );
+  }
+
   private requireSocketToBeOpen(): void {
     if (!this.socketOpen) {
       throw new Error('Please call connect before subscribing');
@@ -65,6 +94,23 @@ export class KuCoinWs extends Emittery {
     clearInterval(this.pingTimer);
   }
 
+  private processRawTicker(symbol: string, rawTicker: RawTicker) {
+    const ticker: Ticker = {
+      symbol,
+      info: rawTicker,
+      timestamp: rawTicker.time,
+      datetime: new Date(rawTicker.time).toUTCString(),
+      high: Number(rawTicker.bestAsk),
+      low: Number(rawTicker.bestBid),
+      ask: Number(rawTicker.bestAsk),
+      bid: Number(rawTicker.bestBid),
+      last: Number(rawTicker.price),
+      close: Number(rawTicker.price),
+    };
+
+    this.emit(`ticker-${symbol}`, ticker);
+  }
+
   private openWebsocketConnection(): Promise<void> {
     if (this.socketOpen) {
       return;
@@ -73,7 +119,19 @@ export class KuCoinWs extends Emittery {
     this.ws = new WebSocket(this.wsPath);
 
     this.ws.on('message', (data: string) => {
-      const received = JSON.parse(data);
+      const received = JSON.parse(data) as MessageData;
+
+      if (received.type === 'error') {
+        const error = new Error(received.data);
+
+        this.emit('error', error);
+      }
+
+      if (received.subject === 'trade.ticker') {
+        const symbol = received.topic.split('/market/ticker:').pop();
+
+        this.processRawTicker(symbol, received.data);
+      }
     });
 
     this.ws.on('close', () => {

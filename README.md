@@ -10,14 +10,14 @@ This package is made by the IOfate company and is open source, feel free to use 
 ## Features
 
 - [] Price ticks
-  - [] Subscription
-  - [] Unsubscribe
+  - [x] Subscription
+  - [x] Unsubscribe
 - [] Candlesticks
   - [] Subscription
   - [] Unsubscribe
-- [] Send ping
-- [] Emit errors by sockets
-- [] Auto-reconnect
+- [x] Send ping
+- [x] Emit errors by sockets
+- [x] Auto-reconnect
 
 ## Install
 
