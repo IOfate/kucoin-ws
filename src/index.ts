@@ -45,11 +45,13 @@ export class KuCoinWs extends Emittery {
 
   subscribeTicker(symbol: string): void {
     this.requireSocketToBeOpen();
+    const formatSymbol = symbol.replace('/', '-');
+
     this.ws.send(
       JSON.stringify({
         id: Date.now(),
-        type: 'unsubscribe',
-        topic: `/market/ticker:${symbol}`,
+        type: 'subscribe',
+        topic: `/market/ticker:${formatSymbol}`,
         privateChannel: false,
         response: true,
       }),
@@ -58,11 +60,13 @@ export class KuCoinWs extends Emittery {
 
   unsubscribeTicker(symbol: string): void {
     this.requireSocketToBeOpen();
+    const formatSymbol = symbol.replace('/', '-');
+
     this.ws.send(
       JSON.stringify({
         id: Date.now(),
-        type: 'subscribe',
-        topic: `/market/ticker:${symbol}`,
+        type: 'unsubscribe',
+        topic: `/market/ticker:${formatSymbol}`,
         privateChannel: false,
         response: true,
       }),
@@ -128,7 +132,7 @@ export class KuCoinWs extends Emittery {
       }
 
       if (received.subject === 'trade.ticker') {
-        const symbol = received.topic.split('/market/ticker:').pop();
+        const symbol = received.topic.split('/market/ticker:').pop().replace('-', '/');
 
         this.processRawTicker(symbol, received.data);
       }
