@@ -1,7 +1,5 @@
-import { RawCandle } from './raw-candle';
-
 export interface Candle {
-  info: RawCandle;
+  info: string[];
   symbol: string;
   open: number;
   high: number;
