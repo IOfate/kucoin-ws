@@ -12,9 +12,9 @@ This package is made by the IOfate company and is open source, feel free to use 
 - [x] Price ticks
   - [x] Subscription
   - [x] Unsubscribe
-- [] Candlesticks
-  - [] Subscription
-  - [] Unsubscribe
+- [x] Candlesticks
+  - [x] Subscription
+  - [x] Unsubscribe
 - [x] Send ping
 - [x] Emit errors by sockets
 - [x] Auto-reconnect
@@ -95,9 +95,44 @@ import { KuCoinWs } from '@iofate/kucoin-ws';
 
 const kuCoinWs = new KuCoinWs();
 
-await kuCoinWs.open();
+await kuCoinWs.connect();
 kuCoinWs.subscribeTicker('BTC/USDT');
 const stopListenFn = kuCoinWs.on('ticker-BTC/USDT', ticker => console.log(ticker));
 kuCoinWs.unsubscribeTicker('BTC/USDT');
+stopListenFn();
+```
+
+### kuCoinWs.subscribeCandles(symbol, timeFrame)
+
+Subscribe to the websocket candle of the chosen symbol and time frame.
+Once called you'll be able to listen to candle events for this symbol.
+**`connect` method must be called before calling this one.**
+
+Valid time frame: `'1m', '3m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '1w', '1M'`
+
+```js
+import { KuCoinWs } from '@iofate/kucoin-ws';
+
+const kuCoinWs = new KuCoinWs();
+
+await kuCoinWs.connect();
+kuCoinWs.subscribeCandles('BTC/USDT', '1d');
+kuCoinWs.on('candle-BTC/USDT-1d', candle => console.log(candle));
+```
+
+### kuCoinWs.unsubscribeCandles(symbol, timeFrame)
+
+Unsubscribe from the candle websocket of the associated symbol.
+Once called no more events will be dispatched.
+
+```js
+import { KuCoinWs } from '@iofate/kucoin-ws';
+
+const kuCoinWs = new KuCoinWs();
+
+await kuCoinWs.connect();
+kuCoinWs.subscribeCandles('BTC/USDT', '1d');
+const stopListenFn = kuCoinWs.on('candle-BTC/USDT-1d', candle => console.log(candle));
+kuCoinWs.unsubscribeCandles('BTC/USDT', '1d');
 stopListenFn();
 ```

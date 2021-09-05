@@ -2,16 +2,32 @@ import { randomBytes } from 'crypto';
 import Emittery from 'emittery';
 import WebSocket from 'ws';
 import got from 'got';
+import parseDuration from 'parse-duration';
 
 /** Models */
 import { PublicToken } from './models/public-token.model';
 import { MessageData } from './models/message-data.model';
 import { RawTicker } from './models/raw-ticker';
 import { Ticker } from './models/ticker';
+import { Candle } from './models/candle';
 
 export class KuCoinWs extends Emittery {
   private readonly publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
   private readonly lengthConnectId = 24;
+  private readonly mapCandleInterval = {
+    '1m': '1min',
+    '3m': '3min',
+    '15m': '15min',
+    '30m': '30min',
+    '1h': '1hour',
+    '2h': '2hour',
+    '4h': '4hour',
+    '6h': '6hour',
+    '8h': '8hour',
+    '12h': '12hour',
+    '1d': '1day',
+    '1w': '1week',
+  };
   private ws: WebSocket;
   private socketOpen: boolean;
   private askingClose: boolean;
@@ -73,6 +89,50 @@ export class KuCoinWs extends Emittery {
     );
   }
 
+  subscribeCandle(symbol: string, interval: string): void {
+    this.requireSocketToBeOpen();
+    const formatSymbol = symbol.replace('/', '-');
+    const formatInterval = this.mapCandleInterval[interval];
+
+    if (!formatInterval) {
+      throw new TypeError(
+        `Wrong format waiting for: ${Object.keys(this.mapCandleInterval).join(', ')}`,
+      );
+    }
+
+    this.ws.send(
+      JSON.stringify({
+        id: Date.now(),
+        type: 'subscribe',
+        topic: `/market/candles:${formatSymbol}_${formatInterval}`,
+        privateChannel: false,
+        response: true,
+      }),
+    );
+  }
+
+  unsubscribeCandle(symbol: string, interval: string): void {
+    this.requireSocketToBeOpen();
+    const formatSymbol = symbol.replace('/', '-');
+    const formatInterval = this.mapCandleInterval[interval];
+
+    if (!formatInterval) {
+      throw new TypeError(
+        `Wrong format waiting for: ${Object.keys(this.mapCandleInterval).join(', ')}`,
+      );
+    }
+
+    this.ws.send(
+      JSON.stringify({
+        id: Date.now(),
+        type: 'unsubscribe',
+        topic: `/market/candles:${formatSymbol}_${formatInterval}`,
+        privateChannel: false,
+        response: true,
+      }),
+    );
+  }
+
   private requireSocketToBeOpen(): void {
     if (!this.socketOpen) {
       throw new Error('Please call connect before subscribing');
@@ -115,6 +175,63 @@ export class KuCoinWs extends Emittery {
     this.emit(`ticker-${symbol}`, ticker);
   }
 
+  private reverseInterval(kuCoinInterval: string): string {
+    const keyArray = Object.keys(this.mapCandleInterval);
+    const valueArray = Object.values<string>(this.mapCandleInterval);
+    const index = valueArray.indexOf(kuCoinInterval);
+
+    if (index === -1) {
+      throw new Error(`Unable to map KuCoin candle interval: ${kuCoinInterval}`);
+    }
+
+    return keyArray[index];
+  }
+
+  private processRawCandle(symbol: string, interval: string, rawCandle: string[]) {
+    const now = Date.now();
+    const intervalDuration = parseDuration(interval);
+    const [rawStartCandle, rawOpenPrice, rawClosePrice, rawHighPrice, rawLowPrice, rawVolume] =
+      rawCandle;
+    const startTimeCandle = Number(rawStartCandle) * 1000;
+    const endCandle = startTimeCandle + intervalDuration;
+    const candle: Candle = {
+      info: rawCandle,
+      symbol,
+      close: Number(rawClosePrice),
+      high: Number(rawHighPrice),
+      low: Number(rawLowPrice),
+      open: Number(rawOpenPrice),
+      volume: Number(rawVolume),
+    };
+
+    if (now >= endCandle) {
+      this.emit(`candle-${symbol}-${interval}`, candle);
+    }
+  }
+
+  private processMessage(message: string) {
+    const received = JSON.parse(message) as MessageData;
+
+    if (received.type === 'error') {
+      const error = new Error(received.data);
+
+      this.emit('error', error);
+    }
+
+    if (received.subject === 'trade.ticker') {
+      const symbol = received.topic.split('/market/ticker:').pop().replace('-', '/');
+
+      this.processRawTicker(symbol, received.data);
+    }
+
+    if (received.subject === 'trade.candles.update') {
+      const symbol = received.data.symbol.replace('-', '/');
+      const interval = this.reverseInterval(received.topic.split('_').pop());
+
+      this.processRawCandle(symbol, interval, received.data.candles);
+    }
+  }
+
   private openWebsocketConnection(): Promise<void> {
     if (this.socketOpen) {
       return;
@@ -123,19 +240,7 @@ export class KuCoinWs extends Emittery {
     this.ws = new WebSocket(this.wsPath);
 
     this.ws.on('message', (data: string) => {
-      const received = JSON.parse(data) as MessageData;
-
-      if (received.type === 'error') {
-        const error = new Error(received.data);
-
-        this.emit('error', error);
-      }
-
-      if (received.subject === 'trade.ticker') {
-        const symbol = received.topic.split('/market/ticker:').pop().replace('-', '/');
-
-        this.processRawTicker(symbol, received.data);
-      }
+      this.processMessage(data);
     });
 
     this.ws.on('close', () => {
