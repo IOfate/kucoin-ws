@@ -1,0 +1,49 @@
+{
+  "name": "@iofate/kucoin-ws",
+  "version": "0.0.0",
+  "description": "Node.js websocket client for KuCoin",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint ./src --ext .js,.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run lint && npm run typecheck && npm run build",
+    "start": "ts-node tests/client.ts"
+  },
+  "keywords": [
+    "kucoin",
+    "websocket",
+    "ws",
+    "cryptocurrency",
+    "exchange",
+    "nodejs"
+  ],
+  "author": "IOfate",
+  "license": "MIT",
+  "dependencies": {
+    "emittery": "^0.9.2",
+    "parse-duration": "^1.0.0",
+    "ws": "^8.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^16.3.2",
+    "@types/ws": "^7.4.7",
+    "@typescript-eslint/eslint-plugin": "^4.30.0",
+    "@typescript-eslint/parser": "^4.30.0",
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-import": "^2.24.2",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-unicorn": "^35.0.0",
+    "prettier": "^2.3.2",
+    "ts-node": "^10.2.1",
+    "typescript": "^4.4.2"
+  },
+  "files": [
+    "dist/**/*.{js,ts,map}"
+  ],
+  "engines": {
+    "node": ">=14"
+  }
+}
