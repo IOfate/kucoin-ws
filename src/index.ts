@@ -35,6 +35,7 @@ export class KuCoinWs extends Emittery {
   private pingIntervalMs: number;
   private pingTimer: NodeJS.Timer;
   private wsPath: string;
+  private subscriptions: string[];
 
   constructor() {
     super();
@@ -52,6 +53,7 @@ export class KuCoinWs extends Emittery {
     const { token, instanceServers } = response.data;
     const { endpoint, pingInterval } = instanceServers[0];
 
+    this.subscriptions = [];
     this.connectId = randomBytes(this.lengthConnectId).toString('hex');
     this.pingIntervalMs = pingInterval;
     this.wsPath = `${endpoint}?token=${token}&connectId=${this.connectId}`;
@@ -62,6 +64,11 @@ export class KuCoinWs extends Emittery {
   subscribeTicker(symbol: string): void {
     this.requireSocketToBeOpen();
     const formatSymbol = symbol.replace('/', '-');
+    const indexSubscription = `ticker-${formatSymbol}`;
+
+    if (this.subscriptions.includes(indexSubscription)) {
+      return;
+    }
 
     this.ws.send(
       JSON.stringify({
@@ -72,11 +79,17 @@ export class KuCoinWs extends Emittery {
         response: true,
       }),
     );
+    this.subscriptions.push(indexSubscription);
   }
 
   unsubscribeTicker(symbol: string): void {
     this.requireSocketToBeOpen();
     const formatSymbol = symbol.replace('/', '-');
+    const indexSubscription = `ticker-${formatSymbol}`;
+
+    if (!this.subscriptions.includes(indexSubscription)) {
+      return;
+    }
 
     this.ws.send(
       JSON.stringify({
@@ -87,6 +100,7 @@ export class KuCoinWs extends Emittery {
         response: true,
       }),
     );
+    this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== indexSubscription);
   }
 
   subscribeCandle(symbol: string, interval: string): void {
@@ -100,6 +114,12 @@ export class KuCoinWs extends Emittery {
       );
     }
 
+    const indexSubscription = `candle-${formatSymbol}-${formatInterval}`;
+
+    if (this.subscriptions.includes(indexSubscription)) {
+      return;
+    }
+
     this.ws.send(
       JSON.stringify({
         id: Date.now(),
@@ -109,6 +129,7 @@ export class KuCoinWs extends Emittery {
         response: true,
       }),
     );
+    this.subscriptions.push(indexSubscription);
   }
 
   unsubscribeCandle(symbol: string, interval: string): void {
@@ -122,6 +143,12 @@ export class KuCoinWs extends Emittery {
       );
     }
 
+    const indexSubscription = `candle-${formatSymbol}-${formatInterval}`;
+
+    if (!this.subscriptions.includes(indexSubscription)) {
+      return;
+    }
+
     this.ws.send(
       JSON.stringify({
         id: Date.now(),
@@ -131,6 +158,16 @@ export class KuCoinWs extends Emittery {
         response: true,
       }),
     );
+    this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== indexSubscription);
+  }
+
+  closeConnection(): void {
+    if (this.subscriptions.length) {
+      throw new Error(`You have activated subscriptions! (${this.subscriptions.length})`);
+    }
+
+    this.askingClose = true;
+    this.ws.close();
   }
 
   private requireSocketToBeOpen(): void {

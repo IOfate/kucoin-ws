@@ -47,9 +47,8 @@ main();
 
 ## API
 
-This package export one class `KuCoinWs` which extend from [Emittery](https://www.npmjs.com/package/emittery), which allow us to dispatch and listen events.
+This package export one class `KuCoinWs` and extend from [Emittery](https://www.npmjs.com/package/emittery), which allow us to dispatch and listen events.
 More information about Emittery API here: https://github.com/sindresorhus/emittery#api
-
 
 ### kuCoinWs = new KuCoinWs()
 
@@ -136,3 +135,8 @@ const stopListenFn = kuCoinWs.on('candle-BTC/USDT-1d', candle => console.log(can
 kuCoinWs.unsubscribeCandles('BTC/USDT', '1d');
 stopListenFn();
 ```
+
+### kuCoinWs.closeConnection()
+
+Close the connection between you and KuCoin.
+**You must unsubscribe from everything before calling this method!**
