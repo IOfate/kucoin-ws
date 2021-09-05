@@ -4,7 +4,7 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug BitPanda WS Client",
+      "name": "Debug KuCoin WS Client",
       "cwd": "${workspaceRoot}",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
