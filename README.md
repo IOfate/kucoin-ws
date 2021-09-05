@@ -15,7 +15,7 @@ This package is made by the IOfate company and is open source, feel free to use 
 - [] Candlesticks
   - [] Subscription
   - [] Unsubscribe
-- [] Heart bit
+- [] Send ping
 - [] Emit errors by sockets
 - [] Auto-reconnect
 
