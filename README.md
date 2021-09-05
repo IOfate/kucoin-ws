@@ -1,5 +1,10 @@
 # KuCoin WS
 
+[![Node.js CI](https://github.com/IOfate/kucoin-ws/actions/workflows/node.js.yml/badge.svg?branch=main)](https://github.com/IOfate/kucoin-ws/actions/workflows/node.js.yml)
+[![npm version](https://img.shields.io/npm/v/@iofate/kucoin-ws)](https://www.npmjs.com/package/@iofate/kucoin-ws)
+[![dependencies Status](https://status.david-dm.org/gh/iofate/kucoin-ws.svg)](https://david-dm.org/iofate/kucoin-ws)
+[![devDependencies Status](https://status.david-dm.org/gh/iofate/kucoin-ws.svg?type=dev)](https://david-dm.org/iofate/kucoin-ws?type=dev)
+
 Node.js websocket client for KuCoin.
 Websocket API documentation: https://docs.kucoin.com/#websocket-feed
 
