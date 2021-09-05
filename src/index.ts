@@ -36,6 +36,7 @@ export class KuCoinWs extends Emittery {
   private pingTimer: NodeJS.Timer;
   private wsPath: string;
   private subscriptions: string[];
+  private mapCandleTimestamp: { [candleKey: string]: number };
 
   constructor() {
     super();
@@ -55,6 +56,7 @@ export class KuCoinWs extends Emittery {
 
     this.subscriptions = [];
     this.askingClose = false;
+    this.mapCandleTimestamp = {};
     this.connectId = randomBytes(this.lengthConnectId).toString('hex');
     this.pingIntervalMs = pingInterval;
     this.wsPath = `${endpoint}?token=${token}&connectId=${this.connectId}`;
@@ -150,6 +152,7 @@ export class KuCoinWs extends Emittery {
       return;
     }
 
+    delete this.mapCandleTimestamp[indexSubscription];
     this.ws.send(
       JSON.stringify({
         id: Date.now(),
@@ -227,6 +230,7 @@ export class KuCoinWs extends Emittery {
 
   private processRawCandle(symbol: string, interval: string, rawCandle: string[]) {
     const now = Date.now();
+    const keyCandle = `candle-${symbol}-${interval}`;
     const intervalDuration = parseDuration(interval);
     const [rawStartCandle, rawOpenPrice, rawClosePrice, rawHighPrice, rawLowPrice, rawVolume] =
       rawCandle;
@@ -242,8 +246,9 @@ export class KuCoinWs extends Emittery {
       volume: Number(rawVolume),
     };
 
-    if (now >= endCandle) {
-      this.emit(`candle-${symbol}-${interval}`, candle);
+    if (now >= endCandle && this.mapCandleTimestamp[keyCandle] !== startTimeCandle) {
+      this.mapCandleTimestamp[keyCandle] = startTimeCandle;
+      this.emit(keyCandle, candle);
     }
   }
 
