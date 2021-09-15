@@ -19,6 +19,13 @@
     "exchange",
     "nodejs"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IOfate/kucoin-ws.git"
+  },
+  "bugs": {
+    "url": "https://github.com/IOfate/kucoin-ws/issues"
+  },
   "author": "IOfate",
   "license": "MIT",
   "dependencies": {
