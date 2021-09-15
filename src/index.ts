@@ -2,7 +2,6 @@ import { randomBytes } from 'crypto';
 import Emittery from 'emittery';
 import WebSocket from 'ws';
 import got from 'got';
-import parseDuration from 'parse-duration';
 
 /** Models */
 import { PublicToken } from './models/public-token.model';
@@ -36,7 +35,7 @@ export class KuCoinWs extends Emittery {
   private pingTimer: NodeJS.Timer;
   private wsPath: string;
   private subscriptions: string[];
-  private mapCandleTimestamp: { [candleKey: string]: number };
+  private currentCandles: { [candleKey: string]: Candle };
 
   constructor() {
     super();
@@ -56,7 +55,7 @@ export class KuCoinWs extends Emittery {
 
     this.subscriptions = [];
     this.askingClose = false;
-    this.mapCandleTimestamp = {};
+    this.currentCandles = {};
     this.connectId = randomBytes(this.lengthConnectId).toString('hex');
     this.pingIntervalMs = pingInterval;
     this.wsPath = `${endpoint}?token=${token}&connectId=${this.connectId}`;
@@ -152,7 +151,6 @@ export class KuCoinWs extends Emittery {
       return;
     }
 
-    delete this.mapCandleTimestamp[indexSubscription];
     this.ws.send(
       JSON.stringify({
         id: Date.now(),
@@ -163,6 +161,7 @@ export class KuCoinWs extends Emittery {
       }),
     );
     this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== indexSubscription);
+    delete this.currentCandles[indexSubscription];
   }
 
   closeConnection(): void {
@@ -228,14 +227,9 @@ export class KuCoinWs extends Emittery {
     return keyArray[index];
   }
 
-  private processRawCandle(symbol: string, interval: string, rawCandle: string[]) {
-    const now = Date.now();
-    const keyCandle = `candle-${symbol}-${interval}`;
-    const intervalDuration = parseDuration(interval);
-    const [rawStartCandle, rawOpenPrice, rawClosePrice, rawHighPrice, rawLowPrice, rawVolume] =
-      rawCandle;
-    const startTimeCandle = Number(rawStartCandle) * 1000;
-    const endCandle = startTimeCandle + intervalDuration;
+  private getCandle(symbol: string, rawCandle: string[]): Candle {
+    const [, rawOpenPrice, rawClosePrice, rawHighPrice, rawLowPrice, rawVolume] = rawCandle;
+
     const candle: Candle = {
       info: rawCandle,
       symbol,
@@ -246,10 +240,25 @@ export class KuCoinWs extends Emittery {
       volume: Number(rawVolume),
     };
 
-    if (now >= endCandle && this.mapCandleTimestamp[keyCandle] !== startTimeCandle) {
-      this.mapCandleTimestamp[keyCandle] = startTimeCandle;
-      this.emit(keyCandle, candle);
+    return candle;
+  }
+
+  private processCandleUpdate(symbol: string, interval: string, rawCandle: string[]) {
+    const keyCandle = `candle-${symbol}-${interval}`;
+    const candle = this.getCandle(symbol, rawCandle);
+
+    this.currentCandles[keyCandle] = candle;
+  }
+
+  private processCandleAdd(symbol: string, interval: string, rawCandle: string[]) {
+    const keyCandle = `candle-${symbol}-${interval}`;
+    const candle = this.getCandle(symbol, rawCandle);
+
+    if (this.currentCandles[keyCandle]) {
+      this.emit(keyCandle, this.currentCandles[keyCandle]);
     }
+
+    this.currentCandles[keyCandle] = candle;
   }
 
   private processMessage(message: string) {
@@ -271,7 +280,14 @@ export class KuCoinWs extends Emittery {
       const symbol = received.data.symbol.replace('-', '/');
       const interval = this.reverseInterval(received.topic.split('_').pop());
 
-      this.processRawCandle(symbol, interval, received.data.candles);
+      this.processCandleUpdate(symbol, interval, received.data.candles);
+    }
+
+    if (received.subject === 'trade.candles.add') {
+      const symbol = received.data.symbol.replace('-', '/');
+      const interval = this.reverseInterval(received.topic.split('_').pop());
+
+      this.processCandleAdd(symbol, interval, received.data.candles);
     }
   }
 
