@@ -145,3 +145,7 @@ stopListenFn();
 
 Close the connection between you and KuCoin.
 **You must unsubscribe from everything before calling this method!**
+
+### kuCoinWs.isSocketOpen()
+
+Return a boolean which indicate if the socket is open or not.

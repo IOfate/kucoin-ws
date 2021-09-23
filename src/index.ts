@@ -173,6 +173,10 @@ export class KuCoinWs extends Emittery {
     this.ws.close();
   }
 
+  isSocketOpen(): boolean {
+    return this.socketOpen;
+  }
+
   private requireSocketToBeOpen(): void {
     if (!this.socketOpen) {
       throw new Error('Please call connect before subscribing');
