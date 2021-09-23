@@ -34,7 +34,7 @@ export class KuCoinWs extends Emittery {
   private pingIntervalMs: number;
   private pingTimer: NodeJS.Timer;
   private wsPath: string;
-  private subscriptions: string[];
+  private subscriptions: string[] = [];
   private currentCandles: { [candleKey: string]: Candle };
 
   constructor() {
@@ -53,7 +53,6 @@ export class KuCoinWs extends Emittery {
     const { token, instanceServers } = response.data;
     const { endpoint, pingInterval } = instanceServers[0];
 
-    this.subscriptions = [];
     this.askingClose = false;
     this.currentCandles = {};
     this.connectId = randomBytes(this.lengthConnectId).toString('hex');
@@ -61,12 +60,16 @@ export class KuCoinWs extends Emittery {
     this.wsPath = `${endpoint}?token=${token}&connectId=${this.connectId}`;
 
     await this.openWebsocketConnection();
+
+    if (this.subscriptions.length) {
+      this.restartPreviousSubscriptions();
+    }
   }
 
   subscribeTicker(symbol: string): void {
     this.requireSocketToBeOpen();
     const formatSymbol = symbol.replace('/', '-');
-    const indexSubscription = `ticker-${formatSymbol}`;
+    const indexSubscription = `ticker-${symbol}`;
 
     if (this.subscriptions.includes(indexSubscription)) {
       return;
@@ -87,7 +90,7 @@ export class KuCoinWs extends Emittery {
   unsubscribeTicker(symbol: string): void {
     this.requireSocketToBeOpen();
     const formatSymbol = symbol.replace('/', '-');
-    const indexSubscription = `ticker-${formatSymbol}`;
+    const indexSubscription = `ticker-${symbol}`;
 
     if (!this.subscriptions.includes(indexSubscription)) {
       return;
@@ -116,7 +119,7 @@ export class KuCoinWs extends Emittery {
       );
     }
 
-    const indexSubscription = `candle-${formatSymbol}-${formatInterval}`;
+    const indexSubscription = `candle-${symbol}-${interval}`;
 
     if (this.subscriptions.includes(indexSubscription)) {
       return;
@@ -145,7 +148,7 @@ export class KuCoinWs extends Emittery {
       );
     }
 
-    const indexSubscription = `candle-${formatSymbol}-${formatInterval}`;
+    const indexSubscription = `candle-${symbol}-${interval}`;
 
     if (!this.subscriptions.includes(indexSubscription)) {
       return;
@@ -175,6 +178,27 @@ export class KuCoinWs extends Emittery {
 
   isSocketOpen(): boolean {
     return this.socketOpen;
+  }
+
+  private restartPreviousSubscriptions() {
+    if (!this.socketOpen) {
+      return;
+    }
+
+    const previousSubs = [].concat(this.subscriptions);
+    this.subscriptions.length = 0;
+
+    for (const subscription of previousSubs) {
+      const [type, symbol, timeFrame] = subscription.split('-');
+
+      if (type === 'ticker') {
+        this.subscribeTicker(symbol);
+      }
+
+      if (type === 'candle') {
+        this.subscribeCandle(symbol, timeFrame);
+      }
+    }
   }
 
   private requireSocketToBeOpen(): void {
