@@ -335,6 +335,7 @@ export class KuCoinWs extends Emittery {
       this.stopPing();
 
       if (!this.askingClose) {
+        this.emit('reconnect', `reconnect with ${this.subscriptions.length} sockets...`);
         this.connect();
       }
     });
