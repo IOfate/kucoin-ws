@@ -13,6 +13,7 @@ import { Candle } from './models/candle';
 
 export class KuCoinWs extends Emittery {
   private readonly queueProcessor = queue({ concurrency: 1, timeout: 100, autostart: true });
+  private readonly rootApi = 'openapi-v2.kucoin.com';
   private readonly publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
   private readonly lengthConnectId = 24;
   private readonly mapCandleInterval = {
@@ -46,7 +47,9 @@ export class KuCoinWs extends Emittery {
   }
 
   async connect(): Promise<void> {
-    const response = await got.post(this.publicBulletEndPoint).json<PublicToken>();
+    const response = await got
+      .post(this.publicBulletEndPoint, { headers: { host: this.rootApi } })
+      .json<PublicToken>();
 
     if (!response.data || !response.data.token) {
       throw new Error('Invalid public token from KuCoin');
