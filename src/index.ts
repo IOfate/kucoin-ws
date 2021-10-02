@@ -80,6 +80,8 @@ export class KuCoinWs extends Emittery {
       return;
     }
 
+    this.subscriptions.push(indexSubscription);
+    this.emit('subscriptions', this.subscriptions);
     this.queueProcessor.push(() => {
       this.ws.send(
         JSON.stringify({
@@ -91,8 +93,6 @@ export class KuCoinWs extends Emittery {
         }),
       );
     });
-
-    this.subscriptions.push(indexSubscription);
   }
 
   unsubscribeTicker(symbol: string): void {
@@ -116,6 +116,7 @@ export class KuCoinWs extends Emittery {
       );
     });
     this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== indexSubscription);
+    this.emit('subscriptions', this.subscriptions);
   }
 
   subscribeCandle(symbol: string, interval: string): void {
@@ -135,6 +136,8 @@ export class KuCoinWs extends Emittery {
       return;
     }
 
+    this.subscriptions.push(indexSubscription);
+    this.emit('subscriptions', this.subscriptions);
     this.queueProcessor.push(() => {
       this.ws.send(
         JSON.stringify({
@@ -146,7 +149,6 @@ export class KuCoinWs extends Emittery {
         }),
       );
     });
-    this.subscriptions.push(indexSubscription);
   }
 
   unsubscribeCandle(symbol: string, interval: string): void {
@@ -180,6 +182,7 @@ export class KuCoinWs extends Emittery {
 
     this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== indexSubscription);
     delete this.currentCandles[indexSubscription];
+    this.emit('subscriptions', this.subscriptions);
   }
 
   closeConnection(): void {
