@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto';
 import Emittery from 'emittery';
 import WebSocket from 'ws';
 import got from 'got';
+import queue from 'queue';
 
 /** Models */
 import { PublicToken } from './models/public-token.model';
@@ -11,6 +12,7 @@ import { Ticker } from './models/ticker';
 import { Candle } from './models/candle';
 
 export class KuCoinWs extends Emittery {
+  private readonly queueProcessor = queue({ concurrency: 1, timeout: 100, autostart: true });
   private readonly publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
   private readonly lengthConnectId = 24;
   private readonly mapCandleInterval = {
@@ -75,15 +77,18 @@ export class KuCoinWs extends Emittery {
       return;
     }
 
-    this.ws.send(
-      JSON.stringify({
-        id: Date.now(),
-        type: 'subscribe',
-        topic: `/market/ticker:${formatSymbol}`,
-        privateChannel: false,
-        response: true,
-      }),
-    );
+    this.queueProcessor.push(() => {
+      this.ws.send(
+        JSON.stringify({
+          id: Date.now(),
+          type: 'subscribe',
+          topic: `/market/ticker:${formatSymbol}`,
+          privateChannel: false,
+          response: true,
+        }),
+      );
+    });
+
     this.subscriptions.push(indexSubscription);
   }
 
@@ -96,15 +101,17 @@ export class KuCoinWs extends Emittery {
       return;
     }
 
-    this.ws.send(
-      JSON.stringify({
-        id: Date.now(),
-        type: 'unsubscribe',
-        topic: `/market/ticker:${formatSymbol}`,
-        privateChannel: false,
-        response: true,
-      }),
-    );
+    this.queueProcessor.push(() => {
+      this.ws.send(
+        JSON.stringify({
+          id: Date.now(),
+          type: 'unsubscribe',
+          topic: `/market/ticker:${formatSymbol}`,
+          privateChannel: false,
+          response: true,
+        }),
+      );
+    });
     this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== indexSubscription);
   }
 
@@ -125,15 +132,17 @@ export class KuCoinWs extends Emittery {
       return;
     }
 
-    this.ws.send(
-      JSON.stringify({
-        id: Date.now(),
-        type: 'subscribe',
-        topic: `/market/candles:${formatSymbol}_${formatInterval}`,
-        privateChannel: false,
-        response: true,
-      }),
-    );
+    this.queueProcessor.push(() => {
+      this.ws.send(
+        JSON.stringify({
+          id: Date.now(),
+          type: 'subscribe',
+          topic: `/market/candles:${formatSymbol}_${formatInterval}`,
+          privateChannel: false,
+          response: true,
+        }),
+      );
+    });
     this.subscriptions.push(indexSubscription);
   }
 
@@ -154,15 +163,18 @@ export class KuCoinWs extends Emittery {
       return;
     }
 
-    this.ws.send(
-      JSON.stringify({
-        id: Date.now(),
-        type: 'unsubscribe',
-        topic: `/market/candles:${formatSymbol}_${formatInterval}`,
-        privateChannel: false,
-        response: true,
-      }),
-    );
+    this.queueProcessor.push(() => {
+      this.ws.send(
+        JSON.stringify({
+          id: Date.now(),
+          type: 'unsubscribe',
+          topic: `/market/candles:${formatSymbol}_${formatInterval}`,
+          privateChannel: false,
+          response: true,
+        }),
+      );
+    });
+
     this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== indexSubscription);
     delete this.currentCandles[indexSubscription];
   }
