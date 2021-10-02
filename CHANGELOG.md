@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/IOfate/kucoin-ws/compare/v1.1.1...v1.2.0) (2021-10-02)
+
+
+### Features
+
+* **core:** emit list of subscriptions ([c96ba5d](https://github.com/IOfate/kucoin-ws/commit/c96ba5dcaebd9ee0a7b54f92d822f012f9fbfe27))
+
+
+### Bug Fixes
+
+* **core:** force kucoin host in headers ([af70be4](https://github.com/IOfate/kucoin-ws/commit/af70be47b30f2c7a938dd35bdb4f4181791fafae))
+
 ### [1.1.1](https://github.com/IOfate/kucoin-ws/compare/v1.1.0...v1.1.1) (2021-10-02)
 
 
