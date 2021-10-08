@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "npm run lint && npm run typecheck && npm run build",
     "start": "ts-node tests/client.ts",
+    "prerelease": "npm run build",
     "release": "standard-version"
   },
   "keywords": [
