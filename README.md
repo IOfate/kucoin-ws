@@ -149,3 +149,11 @@ Close the connection between you and KuCoin.
 ### kuCoinWs.isSocketOpen()
 
 Return a boolean which indicate if the socket is open or not.
+
+### kuCoinWs.isSocketConnecting()
+
+Return a boolean which indicate if the socket is connecting or not.
+
+### kuCoinWs.getSubscriptionNumber()
+
+Return the number of subscriptions.
