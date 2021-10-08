@@ -222,7 +222,7 @@ export class KuCoinWs extends Emittery {
     return this.socketOpen;
   }
 
-  isSocketConnection(): boolean {
+  isSocketConnecting(): boolean {
     return this.socketConnecting;
   }
 
