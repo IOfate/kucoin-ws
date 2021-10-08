@@ -15,7 +15,7 @@ import { Candle } from './models/candle';
 import { delay } from './util';
 
 export class KuCoinWs extends Emittery {
-  private readonly queueProcessor = queue({ concurrency: 1, timeout: 100, autostart: true });
+  private readonly queueProcessor = queue({ concurrency: 1, timeout: 250, autostart: true });
   private readonly rootApi = 'openapi-v2.kucoin.com';
   private readonly publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
   private readonly lengthConnectId = 24;
@@ -36,6 +36,7 @@ export class KuCoinWs extends Emittery {
   };
   private ws: WebSocket;
   private socketOpen: boolean;
+  private socketConnecting: boolean;
   private askingClose: boolean;
   private connectId: string;
   private pingIntervalMs: number;
@@ -51,11 +52,13 @@ export class KuCoinWs extends Emittery {
   }
 
   async connect(): Promise<void> {
+    this.socketConnecting = true;
     const response = await got
       .post(this.publicBulletEndPoint, { headers: { host: this.rootApi } })
       .json<PublicToken>();
 
     if (!response.data || !response.data.token) {
+      this.socketConnecting = false;
       throw new Error('Invalid public token from KuCoin');
     }
 
@@ -217,6 +220,14 @@ export class KuCoinWs extends Emittery {
 
   isSocketOpen(): boolean {
     return this.socketOpen;
+  }
+
+  isSocketConnection(): boolean {
+    return this.socketConnecting;
+  }
+
+  getSubscriptionNumber(): number {
+    return this.subscriptions.length;
   }
 
   private send(data: string) {
@@ -411,6 +422,7 @@ export class KuCoinWs extends Emittery {
     return new Promise((resolve) => {
       this.ws.on('open', () => {
         this.socketOpen = true;
+        this.socketConnecting = false;
         this.startPing();
         resolve();
       });
