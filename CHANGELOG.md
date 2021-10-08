@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.1](https://github.com/IOfate/kucoin-ws/compare/v1.2.0...v1.2.1) (2021-10-08)
+
+
+### Bug Fixes
+
+* **core:** handle socket not in ready state and delay subscriptions ([aafdb53](https://github.com/IOfate/kucoin-ws/commit/aafdb533b99dd3801aa0c58e0a50316f04ca4190))
+
 ## [1.2.0](https://github.com/IOfate/kucoin-ws/compare/v1.1.1...v1.2.0) (2021-10-02)
 
 
