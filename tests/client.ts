@@ -1,6 +1,6 @@
 import { KuCoinWs } from '../src/index';
+import { delay } from '../src/util';
 
-const delay = async (time: number): Promise<void> => new Promise(resolve => setTimeout(resolve, time));
 const main = async () => {
   const client = new KuCoinWs();
 
@@ -10,9 +10,22 @@ const main = async () => {
 
   await client.connect();
   client.subscribeTicker('BTC/USDT');
+  client.subscribeTicker('ETH/USDT');
+  client.subscribeTicker('LTC/USDT');
+  client.subscribeTicker('FIL/USDT');
+  client.subscribeTicker('VET/USDT');
+  client.subscribeTicker('XRP/USDT');
+  client.subscribeTicker('CRO/USDT');
+  client.subscribeTicker('SOL/USDT');
+  client.subscribeTicker('TRX/USDT');
+  client.subscribeTicker('XTZ/USDT');
+  client.subscribeTicker('ZIL/USDT');
+  client.subscribeTicker('KSM/USDT');
+  client.subscribeTicker('LINK/USDT');
   client.subscribeCandle('BTC/USDT', '1m');
 
   await delay(2000);
+
   client.unsubscribeTicker('BTC/USDT');
   unSubFn();
 };

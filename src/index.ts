@@ -11,11 +11,15 @@ import { RawTicker } from './models/raw-ticker';
 import { Ticker } from './models/ticker';
 import { Candle } from './models/candle';
 
+/** Root */
+import { delay } from './util';
+
 export class KuCoinWs extends Emittery {
   private readonly queueProcessor = queue({ concurrency: 1, timeout: 100, autostart: true });
   private readonly rootApi = 'openapi-v2.kucoin.com';
   private readonly publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
   private readonly lengthConnectId = 24;
+  private readonly retryTimeoutMs = 5000;
   private readonly mapCandleInterval = {
     '1m': '1min',
     '3m': '3min',
@@ -82,6 +86,13 @@ export class KuCoinWs extends Emittery {
 
     this.subscriptions.push(indexSubscription);
     this.emit('subscriptions', this.subscriptions);
+
+    if (!this.ws.readyState) {
+      this.emit('socket-not-ready', `socket not ready to subscribe ticker for: ${symbol}`);
+
+      return;
+    }
+
     this.queueProcessor.push(() => {
       this.ws.send(
         JSON.stringify({
@@ -138,6 +149,16 @@ export class KuCoinWs extends Emittery {
 
     this.subscriptions.push(indexSubscription);
     this.emit('subscriptions', this.subscriptions);
+
+    if (!this.ws.readyState) {
+      this.emit(
+        'socket-not-ready',
+        `socket not ready to subscribe candle for: ${symbol} ${interval}`,
+      );
+
+      return;
+    }
+
     this.queueProcessor.push(() => {
       this.ws.send(
         JSON.stringify({
@@ -200,6 +221,13 @@ export class KuCoinWs extends Emittery {
 
   private restartPreviousSubscriptions() {
     if (!this.socketOpen) {
+      return;
+    }
+
+    if (!this.ws.readyState) {
+      this.emit('socket-not-ready', 'retry later to restart previous subscriptions');
+      setTimeout(() => this.restartPreviousSubscriptions(), this.retryTimeoutMs);
+
       return;
     }
 
@@ -337,12 +365,21 @@ export class KuCoinWs extends Emittery {
     }
   }
 
+  private async reconnect() {
+    await delay(this.retryTimeoutMs);
+    this.emit('reconnect', `reconnect with ${this.subscriptions.length} sockets...`);
+    this.connect();
+  }
+
   private openWebsocketConnection(): Promise<void> {
     if (this.socketOpen) {
       return;
     }
 
-    this.ws = new WebSocket(this.wsPath);
+    this.ws = new WebSocket(this.wsPath, {
+      perMessageDeflate: false,
+      handshakeTimeout: this.retryTimeoutMs,
+    });
 
     this.ws.on('message', (data: string) => {
       this.processMessage(data);
@@ -351,10 +388,10 @@ export class KuCoinWs extends Emittery {
     this.ws.on('close', () => {
       this.socketOpen = false;
       this.stopPing();
+      this.ws = undefined;
 
       if (!this.askingClose) {
-        this.emit('reconnect', `reconnect with ${this.subscriptions.length} sockets...`);
-        this.connect();
+        this.reconnect();
       }
     });
 
