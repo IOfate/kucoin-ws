@@ -14,7 +14,7 @@ const util_1 = require("./util");
 class KuCoinWs extends emittery_1.default {
     constructor() {
         super();
-        this.queueProcessor = (0, queue_1.default)({ concurrency: 1, timeout: 100, autostart: true });
+        this.queueProcessor = (0, queue_1.default)({ concurrency: 1, timeout: 250, autostart: true });
         this.rootApi = 'openapi-v2.kucoin.com';
         this.publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
         this.lengthConnectId = 24;
@@ -38,10 +38,12 @@ class KuCoinWs extends emittery_1.default {
         this.askingClose = false;
     }
     async connect() {
+        this.socketConnecting = true;
         const response = await got_1.default
             .post(this.publicBulletEndPoint, { headers: { host: this.rootApi } })
             .json();
         if (!response.data || !response.data.token) {
+            this.socketConnecting = false;
             throw new Error('Invalid public token from KuCoin');
         }
         const { token, instanceServers } = response.data;
@@ -158,6 +160,12 @@ class KuCoinWs extends emittery_1.default {
     }
     isSocketOpen() {
         return this.socketOpen;
+    }
+    isSocketConnection() {
+        return this.socketConnecting;
+    }
+    getSubscriptionNumber() {
+        return this.subscriptions.length;
     }
     send(data) {
         if (!this.ws) {
@@ -307,6 +315,7 @@ class KuCoinWs extends emittery_1.default {
         return new Promise((resolve) => {
             this.ws.on('open', () => {
                 this.socketOpen = true;
+                this.socketConnecting = false;
                 this.startPing();
                 resolve();
             });

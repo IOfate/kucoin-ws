@@ -8,6 +8,7 @@ export declare class KuCoinWs extends Emittery {
     private readonly mapCandleInterval;
     private ws;
     private socketOpen;
+    private socketConnecting;
     private askingClose;
     private connectId;
     private pingIntervalMs;
@@ -23,6 +24,8 @@ export declare class KuCoinWs extends Emittery {
     unsubscribeCandle(symbol: string, interval: string): void;
     closeConnection(): void;
     isSocketOpen(): boolean;
+    isSocketConnection(): boolean;
+    getSubscriptionNumber(): number;
     private send;
     private restartPreviousSubscriptions;
     private requireSocketToBeOpen;
