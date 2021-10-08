@@ -5,6 +5,7 @@ const main = async () => {
   const client = new KuCoinWs();
 
   client.on('error', data => console.error(data));
+  client.on('reconnect', log => console.log(log));
   const unSubFn = client.on('ticker-BTC/USDT', tickerBtc => console.log(tickerBtc));
   client.on('candle-BTC/USDT-1m', candleBtc => console.log(candleBtc));
 

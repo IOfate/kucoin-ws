@@ -394,6 +394,7 @@ export class KuCoinWs extends Emittery {
     });
 
     this.ws.on('close', () => {
+      this.queueProcessor.end();
       this.socketOpen = false;
       this.stopPing();
       this.ws = undefined;
