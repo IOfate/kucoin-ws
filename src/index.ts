@@ -94,7 +94,7 @@ export class KuCoinWs extends Emittery {
     }
 
     this.queueProcessor.push(() => {
-      this.ws.send(
+      this.send(
         JSON.stringify({
           id: Date.now(),
           type: 'subscribe',
@@ -116,7 +116,7 @@ export class KuCoinWs extends Emittery {
     }
 
     this.queueProcessor.push(() => {
-      this.ws.send(
+      this.send(
         JSON.stringify({
           id: Date.now(),
           type: 'unsubscribe',
@@ -160,7 +160,7 @@ export class KuCoinWs extends Emittery {
     }
 
     this.queueProcessor.push(() => {
-      this.ws.send(
+      this.send(
         JSON.stringify({
           id: Date.now(),
           type: 'subscribe',
@@ -190,7 +190,7 @@ export class KuCoinWs extends Emittery {
     }
 
     this.queueProcessor.push(() => {
-      this.ws.send(
+      this.send(
         JSON.stringify({
           id: Date.now(),
           type: 'unsubscribe',
@@ -217,6 +217,14 @@ export class KuCoinWs extends Emittery {
 
   isSocketOpen(): boolean {
     return this.socketOpen;
+  }
+
+  private send(data: string) {
+    if (!this.ws) {
+      return;
+    }
+
+    this.ws.send(data);
   }
 
   private restartPreviousSubscriptions() {
@@ -255,7 +263,7 @@ export class KuCoinWs extends Emittery {
 
   private sendPing() {
     this.requireSocketToBeOpen();
-    this.ws.send(
+    this.send(
       JSON.stringify({
         id: Date.now(),
         type: 'ping',
