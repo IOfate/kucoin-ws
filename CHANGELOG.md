@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/IOfate/kucoin-ws/compare/v1.2.2...v1.3.0) (2021-10-08)
+
+
+### Features
+
+* **core:** return is connection and number of subscriptions ([9988319](https://github.com/IOfate/kucoin-ws/commit/9988319e0e547652560a65c460dde35c4d9fd6c6))
+
+
+### Bug Fixes
+
+* **core:** end queue processor on close socket and flush it ([09987cb](https://github.com/IOfate/kucoin-ws/commit/09987cbb8e8bb10cd881fa3beb1df0de72619732))
+* **core:** typo connection -> connecting ([0e2fd91](https://github.com/IOfate/kucoin-ws/commit/0e2fd91d268f8f2bea987d59a5a4b99327a70247))
+* **docs:** add info about get subscription number and is connecting ([8300889](https://github.com/IOfate/kucoin-ws/commit/8300889a0675f9b0b0341d861bfe25ec4dd13dc4))
+
 ### [1.2.2](https://github.com/IOfate/kucoin-ws/compare/v1.2.1...v1.2.2) (2021-10-08)
 
 
