@@ -161,7 +161,7 @@ class KuCoinWs extends emittery_1.default {
     isSocketOpen() {
         return this.socketOpen;
     }
-    isSocketConnection() {
+    isSocketConnecting() {
         return this.socketConnecting;
     }
     getSubscriptionNumber() {

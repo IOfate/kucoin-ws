@@ -24,7 +24,7 @@ export declare class KuCoinWs extends Emittery {
     unsubscribeCandle(symbol: string, interval: string): void;
     closeConnection(): void;
     isSocketOpen(): boolean;
-    isSocketConnection(): boolean;
+    isSocketConnecting(): boolean;
     getSubscriptionNumber(): number;
     private send;
     private restartPreviousSubscriptions;
