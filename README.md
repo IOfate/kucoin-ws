@@ -60,9 +60,9 @@ More information about Emittery API here: https://github.com/sindresorhus/emitte
 There are several events which are emitted in different contexts.
 
 - `subscriptions`: emitted when a new subscription is made or closed
-- `socket-not-ready`: emitted when the socket is not ready to subscribe
+- `socket-not-ready`: emitted when the socket is not ready to subscribe (will try to subscribe later)
 - `reconnect`: emitted when a reconnection occurred
-- `error`: emitted when a websocket error occurred
+- `error`: emitted when an error occurred
 
 ```js
 import { KuCoinWs } from '@iofate/kucoin-ws';
@@ -71,7 +71,7 @@ const kuCoinWs = new KuCoinWs();
 
 client.on('subscriptions', subscriptions => console.log('update on subscriptions', subscriptions));
 client.on('reconnect', () => console.log('a reconnection occurred'));
-client.on('socket-not-ready', () => console.warn('socket not ready'));
+client.on('socket-not-ready', msg => console.warn('socket not ready', msg));
 client.on('error', error => console.error(error));
 ```
 
@@ -83,7 +83,7 @@ Create a new instance of KuCoinWs.
 
 Open KuCoin websockets. **Must be called before any subscription!**
 
-Returns a promise.
+Returns a promise. **Can throw errors**
 
 ```js
 import { KuCoinWs } from '@iofate/kucoin-ws';
