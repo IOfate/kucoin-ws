@@ -6,13 +6,11 @@ import queue from 'queue';
 
 /** Models */
 import { PublicToken } from './models/public-token.model';
-import { MessageData } from './models/message-data.model';
-import { RawTicker } from './models/raw-ticker';
-import { Ticker } from './models/ticker';
-import { Candle } from './models/candle';
 
 /** Root */
 import { delay } from './util';
+import { mapCandleInterval } from './const';
+import { EventHandler } from './event-handler';
 
 export class KuCoinWs extends Emittery {
   private readonly queueProcessor = queue({ concurrency: 1, timeout: 250, autostart: true });
@@ -20,20 +18,6 @@ export class KuCoinWs extends Emittery {
   private readonly publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
   private readonly lengthConnectId = 24;
   private readonly retryTimeoutMs = 5000;
-  private readonly mapCandleInterval = {
-    '1m': '1min',
-    '3m': '3min',
-    '15m': '15min',
-    '30m': '30min',
-    '1h': '1hour',
-    '2h': '2hour',
-    '4h': '4hour',
-    '6h': '6hour',
-    '8h': '8hour',
-    '12h': '12hour',
-    '1d': '1day',
-    '1w': '1week',
-  };
   private ws: WebSocket;
   private socketOpen: boolean;
   private socketConnecting: boolean;
@@ -43,12 +27,13 @@ export class KuCoinWs extends Emittery {
   private pingTimer: NodeJS.Timer;
   private wsPath: string;
   private subscriptions: string[] = [];
-  private currentCandles: { [candleKey: string]: Candle };
+  private eventHandler: EventHandler;
 
   constructor() {
     super();
     this.socketOpen = false;
     this.askingClose = false;
+    this.eventHandler = new EventHandler(this);
   }
 
   async connect(): Promise<void> {
@@ -66,7 +51,7 @@ export class KuCoinWs extends Emittery {
     const { endpoint, pingInterval } = instanceServers[0];
 
     this.askingClose = false;
-    this.currentCandles = {};
+    this.eventHandler.clearCandleCache();
     this.connectId = randomBytes(this.lengthConnectId).toString('hex');
     this.pingIntervalMs = pingInterval;
     this.wsPath = `${endpoint}?token=${token}&connectId=${this.connectId}`;
@@ -136,12 +121,10 @@ export class KuCoinWs extends Emittery {
   subscribeCandle(symbol: string, interval: string): void {
     this.requireSocketToBeOpen();
     const formatSymbol = symbol.replace('/', '-');
-    const formatInterval = this.mapCandleInterval[interval];
+    const formatInterval = mapCandleInterval[interval];
 
     if (!formatInterval) {
-      throw new TypeError(
-        `Wrong format waiting for: ${Object.keys(this.mapCandleInterval).join(', ')}`,
-      );
+      throw new TypeError(`Wrong format waiting for: ${Object.keys(mapCandleInterval).join(', ')}`);
     }
 
     const indexSubscription = `candle-${symbol}-${interval}`;
@@ -178,12 +161,10 @@ export class KuCoinWs extends Emittery {
   unsubscribeCandle(symbol: string, interval: string): void {
     this.requireSocketToBeOpen();
     const formatSymbol = symbol.replace('/', '-');
-    const formatInterval = this.mapCandleInterval[interval];
+    const formatInterval = mapCandleInterval[interval];
 
     if (!formatInterval) {
-      throw new TypeError(
-        `Wrong format waiting for: ${Object.keys(this.mapCandleInterval).join(', ')}`,
-      );
+      throw new TypeError(`Wrong format waiting for: ${Object.keys(mapCandleInterval).join(', ')}`);
     }
 
     const indexSubscription = `candle-${symbol}-${interval}`;
@@ -205,7 +186,7 @@ export class KuCoinWs extends Emittery {
     });
 
     this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== indexSubscription);
-    delete this.currentCandles[indexSubscription];
+    this.eventHandler.deleteCandleCache(indexSubscription);
     this.emit('subscriptions', this.subscriptions);
   }
 
@@ -291,106 +272,13 @@ export class KuCoinWs extends Emittery {
     clearInterval(this.pingTimer);
   }
 
-  private processRawTicker(symbol: string, rawTicker: RawTicker) {
-    const ticker: Ticker = {
-      symbol,
-      info: rawTicker,
-      timestamp: rawTicker.time,
-      datetime: new Date(rawTicker.time).toUTCString(),
-      high: Number(rawTicker.bestAsk),
-      low: Number(rawTicker.bestBid),
-      ask: Number(rawTicker.bestAsk),
-      bid: Number(rawTicker.bestBid),
-      last: Number(rawTicker.price),
-      close: Number(rawTicker.price),
-    };
-
-    this.emit(`ticker-${symbol}`, ticker);
-  }
-
-  private reverseInterval(kuCoinInterval: string): string {
-    const keyArray = Object.keys(this.mapCandleInterval);
-    const valueArray = Object.values<string>(this.mapCandleInterval);
-    const index = valueArray.indexOf(kuCoinInterval);
-
-    if (index === -1) {
-      throw new Error(`Unable to map KuCoin candle interval: ${kuCoinInterval}`);
-    }
-
-    return keyArray[index];
-  }
-
-  private getCandle(symbol: string, rawCandle: string[]): Candle {
-    const [, rawOpenPrice, rawClosePrice, rawHighPrice, rawLowPrice, rawVolume] = rawCandle;
-
-    const candle: Candle = {
-      info: rawCandle,
-      symbol,
-      close: Number(rawClosePrice),
-      high: Number(rawHighPrice),
-      low: Number(rawLowPrice),
-      open: Number(rawOpenPrice),
-      volume: Number(rawVolume),
-    };
-
-    return candle;
-  }
-
-  private processCandleUpdate(symbol: string, interval: string, rawCandle: string[]) {
-    const keyCandle = `candle-${symbol}-${interval}`;
-    const candle = this.getCandle(symbol, rawCandle);
-
-    this.currentCandles[keyCandle] = candle;
-  }
-
-  private processCandleAdd(symbol: string, interval: string, rawCandle: string[]) {
-    const keyCandle = `candle-${symbol}-${interval}`;
-    const candle = this.getCandle(symbol, rawCandle);
-
-    if (this.currentCandles[keyCandle]) {
-      this.emit(keyCandle, this.currentCandles[keyCandle]);
-    }
-
-    this.currentCandles[keyCandle] = candle;
-  }
-
-  private processMessage(message: string) {
-    const received = JSON.parse(message) as MessageData;
-
-    if (received.type === 'error') {
-      const error = new Error(received.data);
-
-      this.emit('error', error);
-    }
-
-    if (received.subject === 'trade.ticker') {
-      const symbol = received.topic.split('/market/ticker:').pop().replace('-', '/');
-
-      this.processRawTicker(symbol, received.data);
-    }
-
-    if (received.subject === 'trade.candles.update') {
-      const symbol = received.data.symbol.replace('-', '/');
-      const interval = this.reverseInterval(received.topic.split('_').pop());
-
-      this.processCandleUpdate(symbol, interval, received.data.candles);
-    }
-
-    if (received.subject === 'trade.candles.add') {
-      const symbol = received.data.symbol.replace('-', '/');
-      const interval = this.reverseInterval(received.topic.split('_').pop());
-
-      this.processCandleAdd(symbol, interval, received.data.candles);
-    }
-  }
-
   private async reconnect() {
     await delay(this.retryTimeoutMs);
     this.emit('reconnect', `reconnect with ${this.subscriptions.length} sockets...`);
     this.connect();
   }
 
-  private openWebsocketConnection(): Promise<void> {
+  private async openWebsocketConnection(): Promise<void> {
     if (this.socketOpen) {
       return;
     }
@@ -401,7 +289,7 @@ export class KuCoinWs extends Emittery {
     });
 
     this.ws.on('message', (data: string) => {
-      this.processMessage(data);
+      this.eventHandler.processMessage(data);
     });
 
     this.ws.on('close', () => {
@@ -419,11 +307,16 @@ export class KuCoinWs extends Emittery {
       this.emit('error', error);
     });
 
+    await this.waitOpenSocket();
+    await this.eventHandler.waitForEvent('welcome', this.connectId);
+    this.socketOpen = true;
+    this.socketConnecting = false;
+    this.startPing();
+  }
+
+  private waitOpenSocket(): Promise<void> {
     return new Promise((resolve) => {
       this.ws.on('open', () => {
-        this.socketOpen = true;
-        this.socketConnecting = false;
-        this.startPing();
         resolve();
       });
     });
