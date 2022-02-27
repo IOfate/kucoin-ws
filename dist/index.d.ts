@@ -5,7 +5,6 @@ export declare class KuCoinWs extends Emittery {
     private readonly publicBulletEndPoint;
     private readonly lengthConnectId;
     private readonly retryTimeoutMs;
-    private readonly mapCandleInterval;
     private ws;
     private socketOpen;
     private socketConnecting;
@@ -15,7 +14,7 @@ export declare class KuCoinWs extends Emittery {
     private pingTimer;
     private wsPath;
     private subscriptions;
-    private currentCandles;
+    private eventHandler;
     constructor();
     connect(): Promise<void>;
     subscribeTicker(symbol: string): void;
@@ -32,12 +31,7 @@ export declare class KuCoinWs extends Emittery {
     private sendPing;
     private startPing;
     private stopPing;
-    private processRawTicker;
-    private reverseInterval;
-    private getCandle;
-    private processCandleUpdate;
-    private processCandleAdd;
-    private processMessage;
     private reconnect;
     private openWebsocketConnection;
+    private waitOpenSocket;
 }
