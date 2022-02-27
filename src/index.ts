@@ -43,8 +43,11 @@ export class KuCoinWs extends Emittery {
       .json<PublicToken>();
 
     if (!response.data || !response.data.token) {
+      const invalidTokenError = new Error('Invalid public token from KuCoin');
+
       this.socketConnecting = false;
-      throw new Error('Invalid public token from KuCoin');
+      this.emit('error', invalidTokenError);
+      throw invalidTokenError;
     }
 
     const { token, instanceServers } = response.data;
@@ -401,7 +404,15 @@ export class KuCoinWs extends Emittery {
     });
 
     await this.waitOpenSocket();
-    await this.eventHandler.waitForEvent('welcome', this.connectId);
+    const welcomeResult = await this.eventHandler.waitForEvent('welcome', this.connectId);
+
+    if (!welcomeResult) {
+      const welcomeError = new Error('No welcome message from KuCoin received!');
+
+      this.emit('error', welcomeError);
+      throw welcomeError;
+    }
+
     this.socketOpen = true;
     this.socketConnecting = false;
     this.startPing();

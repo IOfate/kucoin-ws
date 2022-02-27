@@ -24,14 +24,14 @@ export class EventHandler {
     event: string,
     id: string,
     callback: (result: boolean) => void = noop,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const eventKey = `${event}-${id}`;
 
     return new Promise((resolve) => {
       const cb = (result: boolean) => {
         if (this.mapResolveWaitEvent[eventKey]) {
           delete this.mapResolveWaitEvent[eventKey];
-          resolve();
+          resolve(result);
           callback(result);
         }
       };
