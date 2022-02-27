@@ -235,7 +235,7 @@ export class KuCoinWs extends Emittery {
     this.subscriptions.length = 0;
 
     for (const subscription of previousSubs) {
-      const [type, symbol, timeFrame] = subscription.split('-');
+      const [type, symbol, timeFrame] = subscription.split('-') as string[];
 
       if (type === 'ticker') {
         this.subscribeTicker(symbol);

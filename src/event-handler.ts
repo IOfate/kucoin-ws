@@ -46,7 +46,7 @@ export class EventHandler {
     }
 
     if (received.type === 'error') {
-      const error = new Error(received.data);
+      const error = new Error(received.data as string);
 
       this.emitter.emit('error', error);
     }
@@ -54,21 +54,21 @@ export class EventHandler {
     if (received.subject === 'trade.ticker') {
       const symbol = received.topic.split('/market/ticker:').pop().replace('-', '/');
 
-      this.processRawTicker(symbol, received.data);
+      this.processRawTicker(symbol, received.data as RawTicker);
     }
 
     if (received.subject === 'trade.candles.update') {
-      const symbol = received.data.symbol.replace('-', '/');
+      const symbol = received.data.symbol.replace('-', '/') as string;
       const interval = this.reverseInterval(received.topic.split('_').pop());
 
-      this.processCandleUpdate(symbol, interval, received.data.candles);
+      this.processCandleUpdate(symbol, interval, received.data.candles as string[]);
     }
 
     if (received.subject === 'trade.candles.add') {
-      const symbol = received.data.symbol.replace('-', '/');
+      const symbol = received.data.symbol.replace('-', '/') as string;
       const interval = this.reverseInterval(received.topic.split('_').pop());
 
-      this.processCandleAdd(symbol, interval, received.data.candles);
+      this.processCandleAdd(symbol, interval, received.data.candles as string[]);
     }
   }
 
