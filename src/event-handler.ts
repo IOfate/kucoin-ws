@@ -2,6 +2,7 @@ import Emittery from 'emittery';
 
 /** Root */
 import { mapCandleInterval } from './const';
+import { noop } from './util';
 
 /** Models */
 import { MessageData } from './models/message-data.model';
@@ -19,19 +20,24 @@ export class EventHandler {
     this.mapResolveWaitEvent = {};
   }
 
-  waitForEvent(event: string, id: string): Promise<void> {
+  waitForEvent(
+    event: string,
+    id: string,
+    callback: (result: boolean) => void = noop,
+  ): Promise<void> {
     const eventKey = `${event}-${id}`;
 
     return new Promise((resolve) => {
-      const cb = () => {
+      const cb = (result: boolean) => {
         if (this.mapResolveWaitEvent[eventKey]) {
           delete this.mapResolveWaitEvent[eventKey];
           resolve();
+          callback(result);
         }
       };
 
-      this.mapResolveWaitEvent[eventKey] = cb;
-      setTimeout(cb, this.maxWaiting);
+      this.mapResolveWaitEvent[eventKey] = () => cb(true);
+      setTimeout(() => cb(false), this.maxWaiting);
     });
   }
 

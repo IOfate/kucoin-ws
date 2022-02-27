@@ -8,7 +8,7 @@ import queue from 'queue';
 import { PublicToken } from './models/public-token.model';
 
 /** Root */
-import { delay } from './util';
+import { delay, noop } from './util';
 import { mapCandleInterval } from './const';
 import { EventHandler } from './event-handler';
 
@@ -72,24 +72,40 @@ export class KuCoinWs extends Emittery {
       return;
     }
 
-    this.subscriptions.push(indexSubscription);
-    this.emit('subscriptions', this.subscriptions);
-
     if (!this.ws.readyState) {
       this.emit('socket-not-ready', `socket not ready to subscribe ticker for: ${symbol}`);
 
       return;
     }
 
+    this.addSubscription(indexSubscription);
+
     this.queueProcessor.push(() => {
+      const id = `sub-ticker-${Date.now()}`;
+
       this.send(
         JSON.stringify({
-          id: Date.now(),
+          id,
           type: 'subscribe',
           topic: `/market/ticker:${formatSymbol}`,
           privateChannel: false,
           response: true,
         }),
+        (error?: Error) => {
+          if (error) {
+            this.emit('error', error);
+
+            return this.removeSubscription(indexSubscription);
+          }
+
+          this.eventHandler.waitForEvent('ack', id, (result: boolean) => {
+            if (result) {
+              return;
+            }
+
+            this.removeSubscription(indexSubscription);
+          });
+        },
       );
     });
   }
@@ -104,18 +120,34 @@ export class KuCoinWs extends Emittery {
     }
 
     this.queueProcessor.push(() => {
+      const id = `unsub-ticker-${Date.now()}`;
+
       this.send(
         JSON.stringify({
-          id: Date.now(),
+          id,
           type: 'unsubscribe',
           topic: `/market/ticker:${formatSymbol}`,
           privateChannel: false,
           response: true,
         }),
+        (error?: Error) => {
+          if (error) {
+            this.emit('error', error);
+
+            return this.addSubscription(indexSubscription);
+          }
+
+          this.eventHandler.waitForEvent('ack', id, (result: boolean) => {
+            if (result) {
+              return;
+            }
+
+            this.addSubscription(indexSubscription);
+          });
+        },
       );
     });
-    this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== indexSubscription);
-    this.emit('subscriptions', this.subscriptions);
+    this.removeSubscription(indexSubscription);
   }
 
   subscribeCandle(symbol: string, interval: string): void {
@@ -133,9 +165,6 @@ export class KuCoinWs extends Emittery {
       return;
     }
 
-    this.subscriptions.push(indexSubscription);
-    this.emit('subscriptions', this.subscriptions);
-
     if (!this.ws.readyState) {
       this.emit(
         'socket-not-ready',
@@ -145,15 +174,34 @@ export class KuCoinWs extends Emittery {
       return;
     }
 
+    this.addSubscription(indexSubscription);
+
     this.queueProcessor.push(() => {
+      const id = `sub-candle-${Date.now()}`;
+
       this.send(
         JSON.stringify({
-          id: Date.now(),
+          id,
           type: 'subscribe',
           topic: `/market/candles:${formatSymbol}_${formatInterval}`,
           privateChannel: false,
           response: true,
         }),
+        (error?: Error) => {
+          if (error) {
+            this.emit('error', error);
+
+            return this.removeSubscription(indexSubscription);
+          }
+
+          this.eventHandler.waitForEvent('ack', id, (result: boolean) => {
+            if (result) {
+              return;
+            }
+
+            this.removeSubscription(indexSubscription);
+          });
+        },
       );
     });
   }
@@ -174,20 +222,37 @@ export class KuCoinWs extends Emittery {
     }
 
     this.queueProcessor.push(() => {
+      const id = `unsub-candle-${Date.now()}`;
+
       this.send(
         JSON.stringify({
-          id: Date.now(),
+          id,
           type: 'unsubscribe',
           topic: `/market/candles:${formatSymbol}_${formatInterval}`,
           privateChannel: false,
           response: true,
         }),
+        (error?: Error) => {
+          if (error) {
+            this.emit('error', error);
+
+            return this.addSubscription(indexSubscription);
+          }
+
+          this.eventHandler.waitForEvent('ack', id, (result: boolean) => {
+            if (result) {
+              this.eventHandler.deleteCandleCache(indexSubscription);
+
+              return;
+            }
+
+            this.addSubscription(indexSubscription);
+          });
+        },
       );
     });
 
-    this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== indexSubscription);
-    this.eventHandler.deleteCandleCache(indexSubscription);
-    this.emit('subscriptions', this.subscriptions);
+    this.removeSubscription(indexSubscription);
   }
 
   closeConnection(): void {
@@ -211,12 +276,30 @@ export class KuCoinWs extends Emittery {
     return this.subscriptions.length;
   }
 
-  private send(data: string) {
+  private removeSubscription(index: string): void {
+    if (!this.subscriptions.includes(index)) {
+      return;
+    }
+
+    this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== index);
+    this.emit('subscriptions', this.subscriptions);
+  }
+
+  private addSubscription(index: string): void {
+    if (this.subscriptions.includes(index)) {
+      return;
+    }
+
+    this.subscriptions.push(index);
+    this.emit('subscriptions', this.subscriptions);
+  }
+
+  private send(data: string, sendCb = noop) {
     if (!this.ws) {
       return;
     }
 
-    this.ws.send(data);
+    this.ws.send(data, sendCb);
   }
 
   private restartPreviousSubscriptions() {
