@@ -73,7 +73,13 @@ export class KuCoinWs extends Emittery {
     }
 
     if (!this.ws.readyState) {
-      this.emit('socket-not-ready', `socket not ready to subscribe ticker for: ${symbol}`);
+      this.emit(
+        'socket-not-ready',
+        `socket not ready to subscribe ticker for: ${symbol}, retrying in ${this.retryTimeoutMs}ms`,
+      );
+      const timer = setTimeout(() => this.subscribeTicker(symbol), this.retryTimeoutMs);
+
+      timer.unref();
 
       return;
     }
@@ -168,8 +174,11 @@ export class KuCoinWs extends Emittery {
     if (!this.ws.readyState) {
       this.emit(
         'socket-not-ready',
-        `socket not ready to subscribe candle for: ${symbol} ${interval}`,
+        `socket not ready to subscribe candle for: ${symbol} ${interval}, retrying in ${this.retryTimeoutMs}ms`,
       );
+      const timer = setTimeout(() => this.subscribeCandle(symbol, interval), this.retryTimeoutMs);
+
+      timer.unref();
 
       return;
     }
@@ -309,7 +318,8 @@ export class KuCoinWs extends Emittery {
 
     if (!this.ws.readyState) {
       this.emit('socket-not-ready', 'retry later to restart previous subscriptions');
-      setTimeout(() => this.restartPreviousSubscriptions(), this.retryTimeoutMs);
+      const timer = setTimeout(() => this.restartPreviousSubscriptions(), this.retryTimeoutMs);
+      timer.unref();
 
       return;
     }
