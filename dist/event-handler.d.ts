@@ -5,7 +5,7 @@ export declare class EventHandler {
     private currentCandles;
     private mapResolveWaitEvent;
     constructor(emitter: Emittery);
-    waitForEvent(event: string, id: string): Promise<void>;
+    waitForEvent(event: string, id: string, callback?: (result: boolean) => void): Promise<boolean>;
     processMessage(message: string): void;
     deleteCandleCache(id: string): void;
     clearCandleCache(): void;

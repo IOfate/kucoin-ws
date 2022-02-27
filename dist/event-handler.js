@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EventHandler = void 0;
 /** Root */
 const const_1 = require("./const");
+const util_1 = require("./util");
 class EventHandler {
     constructor(emitter) {
         this.emitter = emitter;
@@ -11,17 +12,19 @@ class EventHandler {
         this.currentCandles = {};
         this.mapResolveWaitEvent = {};
     }
-    waitForEvent(event, id) {
+    waitForEvent(event, id, callback = util_1.noop) {
         const eventKey = `${event}-${id}`;
         return new Promise((resolve) => {
-            const cb = () => {
+            const cb = (result) => {
                 if (this.mapResolveWaitEvent[eventKey]) {
                     delete this.mapResolveWaitEvent[eventKey];
-                    resolve();
+                    resolve(result);
+                    callback(result);
                 }
             };
-            this.mapResolveWaitEvent[eventKey] = cb;
-            setTimeout(cb, this.maxWaiting);
+            this.mapResolveWaitEvent[eventKey] = () => cb(true);
+            const timer = setTimeout(() => cb(false), this.maxWaiting);
+            timer.unref();
         });
     }
     processMessage(message) {

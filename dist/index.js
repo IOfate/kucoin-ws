@@ -32,8 +32,10 @@ class KuCoinWs extends emittery_1.default {
             .post(this.publicBulletEndPoint, { headers: { host: this.rootApi } })
             .json();
         if (!response.data || !response.data.token) {
+            const invalidTokenError = new Error('Invalid public token from KuCoin');
             this.socketConnecting = false;
-            throw new Error('Invalid public token from KuCoin');
+            this.emit('error', invalidTokenError);
+            throw invalidTokenError;
         }
         const { token, instanceServers } = response.data;
         const { endpoint, pingInterval } = instanceServers[0];
@@ -54,20 +56,33 @@ class KuCoinWs extends emittery_1.default {
         if (this.subscriptions.includes(indexSubscription)) {
             return;
         }
-        this.subscriptions.push(indexSubscription);
-        this.emit('subscriptions', this.subscriptions);
         if (!this.ws.readyState) {
-            this.emit('socket-not-ready', `socket not ready to subscribe ticker for: ${symbol}`);
+            this.emit('socket-not-ready', `socket not ready to subscribe ticker for: ${symbol}, retrying in ${this.retryTimeoutMs}ms`);
+            const timer = setTimeout(() => this.subscribeTicker(symbol), this.retryTimeoutMs);
+            timer.unref();
             return;
         }
+        this.addSubscription(indexSubscription);
         this.queueProcessor.push(() => {
+            const id = `sub-ticker-${Date.now()}`;
             this.send(JSON.stringify({
-                id: Date.now(),
+                id,
                 type: 'subscribe',
                 topic: `/market/ticker:${formatSymbol}`,
                 privateChannel: false,
                 response: true,
-            }));
+            }), (error) => {
+                if (error) {
+                    this.emit('error', error);
+                    return this.removeSubscription(indexSubscription);
+                }
+                this.eventHandler.waitForEvent('ack', id, (result) => {
+                    if (result) {
+                        return;
+                    }
+                    this.removeSubscription(indexSubscription);
+                });
+            });
         });
     }
     unsubscribeTicker(symbol) {
@@ -78,16 +93,27 @@ class KuCoinWs extends emittery_1.default {
             return;
         }
         this.queueProcessor.push(() => {
+            const id = `unsub-ticker-${Date.now()}`;
             this.send(JSON.stringify({
-                id: Date.now(),
+                id,
                 type: 'unsubscribe',
                 topic: `/market/ticker:${formatSymbol}`,
                 privateChannel: false,
                 response: true,
-            }));
+            }), (error) => {
+                if (error) {
+                    this.emit('error', error);
+                    return this.addSubscription(indexSubscription);
+                }
+                this.eventHandler.waitForEvent('ack', id, (result) => {
+                    if (result) {
+                        return;
+                    }
+                    this.addSubscription(indexSubscription);
+                });
+            });
         });
-        this.subscriptions = this.subscriptions.filter((fSub) => fSub !== indexSubscription);
-        this.emit('subscriptions', this.subscriptions);
+        this.removeSubscription(indexSubscription);
     }
     subscribeCandle(symbol, interval) {
         this.requireSocketToBeOpen();
@@ -100,20 +126,33 @@ class KuCoinWs extends emittery_1.default {
         if (this.subscriptions.includes(indexSubscription)) {
             return;
         }
-        this.subscriptions.push(indexSubscription);
-        this.emit('subscriptions', this.subscriptions);
         if (!this.ws.readyState) {
-            this.emit('socket-not-ready', `socket not ready to subscribe candle for: ${symbol} ${interval}`);
+            this.emit('socket-not-ready', `socket not ready to subscribe candle for: ${symbol} ${interval}, retrying in ${this.retryTimeoutMs}ms`);
+            const timer = setTimeout(() => this.subscribeCandle(symbol, interval), this.retryTimeoutMs);
+            timer.unref();
             return;
         }
+        this.addSubscription(indexSubscription);
         this.queueProcessor.push(() => {
+            const id = `sub-candle-${Date.now()}`;
             this.send(JSON.stringify({
-                id: Date.now(),
+                id,
                 type: 'subscribe',
                 topic: `/market/candles:${formatSymbol}_${formatInterval}`,
                 privateChannel: false,
                 response: true,
-            }));
+            }), (error) => {
+                if (error) {
+                    this.emit('error', error);
+                    return this.removeSubscription(indexSubscription);
+                }
+                this.eventHandler.waitForEvent('ack', id, (result) => {
+                    if (result) {
+                        return;
+                    }
+                    this.removeSubscription(indexSubscription);
+                });
+            });
         });
     }
     unsubscribeCandle(symbol, interval) {
@@ -128,17 +167,28 @@ class KuCoinWs extends emittery_1.default {
             return;
         }
         this.queueProcessor.push(() => {
+            const id = `unsub-candle-${Date.now()}`;
             this.send(JSON.stringify({
-                id: Date.now(),
+                id,
                 type: 'unsubscribe',
                 topic: `/market/candles:${formatSymbol}_${formatInterval}`,
                 privateChannel: false,
                 response: true,
-            }));
+            }), (error) => {
+                if (error) {
+                    this.emit('error', error);
+                    return this.addSubscription(indexSubscription);
+                }
+                this.eventHandler.waitForEvent('ack', id, (result) => {
+                    if (result) {
+                        this.eventHandler.deleteCandleCache(indexSubscription);
+                        return;
+                    }
+                    this.addSubscription(indexSubscription);
+                });
+            });
         });
-        this.subscriptions = this.subscriptions.filter((fSub) => fSub !== indexSubscription);
-        this.eventHandler.deleteCandleCache(indexSubscription);
-        this.emit('subscriptions', this.subscriptions);
+        this.removeSubscription(indexSubscription);
     }
     closeConnection() {
         if (this.subscriptions.length) {
@@ -156,11 +206,25 @@ class KuCoinWs extends emittery_1.default {
     getSubscriptionNumber() {
         return this.subscriptions.length;
     }
-    send(data) {
+    removeSubscription(index) {
+        if (!this.subscriptions.includes(index)) {
+            return;
+        }
+        this.subscriptions = this.subscriptions.filter((fSub) => fSub !== index);
+        this.emit('subscriptions', this.subscriptions);
+    }
+    addSubscription(index) {
+        if (this.subscriptions.includes(index)) {
+            return;
+        }
+        this.subscriptions.push(index);
+        this.emit('subscriptions', this.subscriptions);
+    }
+    send(data, sendCb = util_1.noop) {
         if (!this.ws) {
             return;
         }
-        this.ws.send(data);
+        this.ws.send(data, sendCb);
     }
     restartPreviousSubscriptions() {
         if (!this.socketOpen) {
@@ -168,7 +232,8 @@ class KuCoinWs extends emittery_1.default {
         }
         if (!this.ws.readyState) {
             this.emit('socket-not-ready', 'retry later to restart previous subscriptions');
-            setTimeout(() => this.restartPreviousSubscriptions(), this.retryTimeoutMs);
+            const timer = setTimeout(() => this.restartPreviousSubscriptions(), this.retryTimeoutMs);
+            timer.unref();
             return;
         }
         const previousSubs = [].concat(this.subscriptions);
@@ -231,7 +296,12 @@ class KuCoinWs extends emittery_1.default {
             this.emit('error', error);
         });
         await this.waitOpenSocket();
-        await this.eventHandler.waitForEvent('welcome', this.connectId);
+        const welcomeResult = await this.eventHandler.waitForEvent('welcome', this.connectId);
+        if (!welcomeResult) {
+            const welcomeError = new Error('No welcome message from KuCoin received!');
+            this.emit('error', welcomeError);
+            throw welcomeError;
+        }
         this.socketOpen = true;
         this.socketConnecting = false;
         this.startPing();
