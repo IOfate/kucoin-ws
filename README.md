@@ -55,6 +55,26 @@ main();
 This package export one class `KuCoinWs` and extend from [Emittery](https://www.npmjs.com/package/emittery), which allow us to dispatch and listen events.
 More information about Emittery API here: https://github.com/sindresorhus/emittery#api
 
+### General events
+
+There are several events which are emitted in different contexts.
+
+- `subscriptions`: emitted when a new subscription is made or closed
+- `socket-not-ready`: emitted when the socket is not ready to subscribe
+- `reconnect`: emitted when a reconnection occurred
+- `error`: emitted when a websocket error occurred
+
+```js
+import { KuCoinWs } from '@iofate/kucoin-ws';
+
+const kuCoinWs = new KuCoinWs();
+
+client.on('subscriptions', subscriptions => console.log('update on subscriptions', subscriptions));
+client.on('reconnect', () => console.log('a reconnection occurred'));
+client.on('socket-not-ready', () => console.warn('socket not ready'));
+client.on('error', error => console.error(error));
+```
+
 ### kuCoinWs = new KuCoinWs()
 
 Create a new instance of KuCoinWs.
