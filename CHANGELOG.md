@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/IOfate/kucoin-ws/compare/v1.3.0...v1.4.0) (2022-03-09)
+
+
+### Features
+
+* **core:** add event handler to process message and wait for specifics ([49c1dd3](https://github.com/IOfate/kucoin-ws/commit/49c1dd361fb55f7c51cb724e6affeab717cb810c))
+
+
+### Bug Fixes
+
+* **core:** be sure to receive a ack when we sub or unsub ([bd1fa1f](https://github.com/IOfate/kucoin-ws/commit/bd1fa1f10f8adcde2e0f524beea9294501446533))
+* **core:** retry later when ws is not ready ([9402ce2](https://github.com/IOfate/kucoin-ws/commit/9402ce267115e19461c684dc4aecf2d4554a96bf))
+* **core:** throw error when no welcome received ([67f0e48](https://github.com/IOfate/kucoin-ws/commit/67f0e480a6154ad118a66ea0871a5cbd28356477))
+* **docs:** add info about general events ([b7e800c](https://github.com/IOfate/kucoin-ws/commit/b7e800c52bdd032bf41c99a0379c70955eefa929))
+* **docs:** add more information about socket not ready ([4438d2c](https://github.com/IOfate/kucoin-ws/commit/4438d2cac8b7d1ca1d4f8625d4353a3ea071c86e))
+
 ## [1.3.0](https://github.com/IOfate/kucoin-ws/compare/v1.2.2...v1.3.0) (2021-10-08)
 
 
