@@ -65,6 +65,12 @@ class KuCoinWs extends emittery_1.default {
         this.addSubscription(indexSubscription);
         this.queueProcessor.push(() => {
             const id = `sub-ticker-${Date.now()}`;
+            this.eventHandler.waitForEvent('ack', id, (result) => {
+                if (result) {
+                    return;
+                }
+                this.removeSubscription(indexSubscription);
+            });
             this.send(JSON.stringify({
                 id,
                 type: 'subscribe',
@@ -76,12 +82,6 @@ class KuCoinWs extends emittery_1.default {
                     this.emit('error', error);
                     return this.removeSubscription(indexSubscription);
                 }
-                this.eventHandler.waitForEvent('ack', id, (result) => {
-                    if (result) {
-                        return;
-                    }
-                    this.removeSubscription(indexSubscription);
-                });
             });
         });
     }
@@ -94,6 +94,12 @@ class KuCoinWs extends emittery_1.default {
         }
         this.queueProcessor.push(() => {
             const id = `unsub-ticker-${Date.now()}`;
+            this.eventHandler.waitForEvent('ack', id, (result) => {
+                if (result) {
+                    return;
+                }
+                this.addSubscription(indexSubscription);
+            });
             this.send(JSON.stringify({
                 id,
                 type: 'unsubscribe',
@@ -105,12 +111,6 @@ class KuCoinWs extends emittery_1.default {
                     this.emit('error', error);
                     return this.addSubscription(indexSubscription);
                 }
-                this.eventHandler.waitForEvent('ack', id, (result) => {
-                    if (result) {
-                        return;
-                    }
-                    this.addSubscription(indexSubscription);
-                });
             });
         });
         this.removeSubscription(indexSubscription);
@@ -135,6 +135,12 @@ class KuCoinWs extends emittery_1.default {
         this.addSubscription(indexSubscription);
         this.queueProcessor.push(() => {
             const id = `sub-candle-${Date.now()}`;
+            this.eventHandler.waitForEvent('ack', id, (result) => {
+                if (result) {
+                    return;
+                }
+                this.removeSubscription(indexSubscription);
+            });
             this.send(JSON.stringify({
                 id,
                 type: 'subscribe',
@@ -146,12 +152,6 @@ class KuCoinWs extends emittery_1.default {
                     this.emit('error', error);
                     return this.removeSubscription(indexSubscription);
                 }
-                this.eventHandler.waitForEvent('ack', id, (result) => {
-                    if (result) {
-                        return;
-                    }
-                    this.removeSubscription(indexSubscription);
-                });
             });
         });
     }
@@ -168,6 +168,13 @@ class KuCoinWs extends emittery_1.default {
         }
         this.queueProcessor.push(() => {
             const id = `unsub-candle-${Date.now()}`;
+            this.eventHandler.waitForEvent('ack', id, (result) => {
+                if (result) {
+                    this.eventHandler.deleteCandleCache(indexSubscription);
+                    return;
+                }
+                this.addSubscription(indexSubscription);
+            });
             this.send(JSON.stringify({
                 id,
                 type: 'unsubscribe',
@@ -179,13 +186,6 @@ class KuCoinWs extends emittery_1.default {
                     this.emit('error', error);
                     return this.addSubscription(indexSubscription);
                 }
-                this.eventHandler.waitForEvent('ack', id, (result) => {
-                    if (result) {
-                        this.eventHandler.deleteCandleCache(indexSubscription);
-                        return;
-                    }
-                    this.addSubscription(indexSubscription);
-                });
             });
         });
         this.removeSubscription(indexSubscription);
