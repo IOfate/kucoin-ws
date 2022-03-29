@@ -14,12 +14,7 @@ export class KuCoinWs extends Emittery {
   }
 
   async connect(): Promise<void> {
-    if (!this.clientList.length) {
-      const newClient = new Client(this, () => this.emitSubscriptions());
-
-      await newClient.connect();
-      this.clientList.push(newClient);
-    }
+    await this.getLastClient();
   }
 
   subscribeTicker(symbol: string): void {
