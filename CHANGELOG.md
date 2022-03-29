@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.1](https://github.com/IOfate/kucoin-ws/compare/v1.4.0...v1.4.1) (2022-03-29)
+
+
+### Bug Fixes
+
+* **core:** wait for ack before sending the request ([9c74100](https://github.com/IOfate/kucoin-ws/commit/9c7410091d71914d86f22ddc84ab436535281248))
+
 ## [1.4.0](https://github.com/IOfate/kucoin-ws/compare/v1.3.0...v1.4.0) (2022-03-09)
 
 
