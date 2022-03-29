@@ -18,6 +18,12 @@ export class KuCoinWs extends Emittery {
   private readonly publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
   private readonly lengthConnectId = 24;
   private readonly retryTimeoutMs = 5000;
+  private readonly emitChannel = {
+    ERROR: 'error',
+    RECONNECT: 'reconnect',
+    SOCKET_NOT_READY: 'socket-not-ready',
+    SUBSCRIPTIONS: 'subscriptions',
+  };
   private ws: WebSocket;
   private socketOpen: boolean;
   private socketConnecting: boolean;
@@ -46,7 +52,7 @@ export class KuCoinWs extends Emittery {
       const invalidTokenError = new Error('Invalid public token from KuCoin');
 
       this.socketConnecting = false;
-      this.emit('error', invalidTokenError);
+      this.emit(this.emitChannel.ERROR, invalidTokenError);
       throw invalidTokenError;
     }
 
@@ -77,12 +83,10 @@ export class KuCoinWs extends Emittery {
 
     if (!this.ws.readyState) {
       this.emit(
-        'socket-not-ready',
+        this.emitChannel.SOCKET_NOT_READY,
         `socket not ready to subscribe ticker for: ${symbol}, retrying in ${this.retryTimeoutMs}ms`,
       );
-      const timer = setTimeout(() => this.subscribeTicker(symbol), this.retryTimeoutMs);
-
-      timer.unref();
+      setTimeout(() => this.subscribeTicker(symbol), this.retryTimeoutMs).unref();
 
       return;
     }
@@ -110,7 +114,7 @@ export class KuCoinWs extends Emittery {
         }),
         (error?: Error) => {
           if (error) {
-            this.emit('error', error);
+            this.emit(this.emitChannel.ERROR, error);
 
             return this.removeSubscription(indexSubscription);
           }
@@ -149,7 +153,7 @@ export class KuCoinWs extends Emittery {
         }),
         (error?: Error) => {
           if (error) {
-            this.emit('error', error);
+            this.emit(this.emitChannel.ERROR, error);
 
             return this.addSubscription(indexSubscription);
           }
@@ -176,12 +180,10 @@ export class KuCoinWs extends Emittery {
 
     if (!this.ws.readyState) {
       this.emit(
-        'socket-not-ready',
+        this.emitChannel.SOCKET_NOT_READY,
         `socket not ready to subscribe candle for: ${symbol} ${interval}, retrying in ${this.retryTimeoutMs}ms`,
       );
-      const timer = setTimeout(() => this.subscribeCandle(symbol, interval), this.retryTimeoutMs);
-
-      timer.unref();
+      setTimeout(() => this.subscribeCandle(symbol, interval), this.retryTimeoutMs).unref();
 
       return;
     }
@@ -209,7 +211,7 @@ export class KuCoinWs extends Emittery {
         }),
         (error?: Error) => {
           if (error) {
-            this.emit('error', error);
+            this.emit(this.emitChannel.ERROR, error);
 
             return this.removeSubscription(indexSubscription);
           }
@@ -256,7 +258,7 @@ export class KuCoinWs extends Emittery {
         }),
         (error?: Error) => {
           if (error) {
-            this.emit('error', error);
+            this.emit(this.emitChannel.ERROR, error);
 
             return this.addSubscription(indexSubscription);
           }
@@ -294,7 +296,7 @@ export class KuCoinWs extends Emittery {
     }
 
     this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== index);
-    this.emit('subscriptions', this.subscriptions);
+    this.emit(this.emitChannel.SUBSCRIPTIONS, this.subscriptions);
   }
 
   private addSubscription(index: string): void {
@@ -303,7 +305,7 @@ export class KuCoinWs extends Emittery {
     }
 
     this.subscriptions.push(index);
-    this.emit('subscriptions', this.subscriptions);
+    this.emit(this.emitChannel.SUBSCRIPTIONS, this.subscriptions);
   }
 
   private send(data: string, sendCb = noop) {
@@ -320,9 +322,8 @@ export class KuCoinWs extends Emittery {
     }
 
     if (!this.ws.readyState) {
-      this.emit('socket-not-ready', 'retry later to restart previous subscriptions');
-      const timer = setTimeout(() => this.restartPreviousSubscriptions(), this.retryTimeoutMs);
-      timer.unref();
+      this.emit(this.emitChannel.SOCKET_NOT_READY, 'retry later to restart previous subscriptions');
+      setTimeout(() => this.restartPreviousSubscriptions(), this.retryTimeoutMs).unref();
 
       return;
     }
@@ -370,7 +371,7 @@ export class KuCoinWs extends Emittery {
 
   private async reconnect() {
     await delay(this.retryTimeoutMs);
-    this.emit('reconnect', `reconnect with ${this.subscriptions.length} sockets...`);
+    this.emit(this.emitChannel.RECONNECT, `reconnect with ${this.subscriptions.length} sockets...`);
     this.connect();
   }
 
@@ -400,7 +401,7 @@ export class KuCoinWs extends Emittery {
     });
 
     this.ws.on('error', (ws: WebSocket, error: Error) => {
-      this.emit('error', error);
+      this.emit(this.emitChannel.ERROR, error);
     });
 
     await this.waitOpenSocket();
@@ -409,7 +410,7 @@ export class KuCoinWs extends Emittery {
     if (!welcomeResult) {
       const welcomeError = new Error('No welcome message from KuCoin received!');
 
-      this.emit('error', welcomeError);
+      this.emit(this.emitChannel.ERROR, welcomeError);
       throw welcomeError;
     }
 
