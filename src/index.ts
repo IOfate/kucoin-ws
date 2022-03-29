@@ -1,429 +1,123 @@
-import { randomBytes } from 'crypto';
 import Emittery from 'emittery';
-import WebSocket from 'ws';
-import got from 'got';
-import queue from 'queue';
-
-/** Models */
-import { PublicToken } from './models/public-token.model';
 
 /** Root */
-import { delay, noop } from './util';
-import { mapCandleInterval } from './const';
-import { EventHandler } from './event-handler';
+import { Client } from './client';
+import { getCandleSubscriptionKey, getTickerSubscriptionKey } from './util';
 
 export class KuCoinWs extends Emittery {
-  private readonly queueProcessor = queue({ concurrency: 1, timeout: 250, autostart: true });
-  private readonly rootApi = 'openapi-v2.kucoin.com';
-  private readonly publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
-  private readonly lengthConnectId = 24;
-  private readonly retryTimeoutMs = 5000;
-  private readonly emitChannel = {
-    ERROR: 'error',
-    RECONNECT: 'reconnect',
-    SOCKET_NOT_READY: 'socket-not-ready',
-    SUBSCRIPTIONS: 'subscriptions',
-  };
-  private ws: WebSocket;
-  private socketOpen: boolean;
-  private socketConnecting: boolean;
-  private askingClose: boolean;
-  private connectId: string;
-  private pingIntervalMs: number;
-  private pingTimer: NodeJS.Timer;
-  private wsPath: string;
-  private subscriptions: string[] = [];
-  private eventHandler: EventHandler;
+  private readonly clientList: Client[] = [];
+  private readonly maxSubscriptions = 300;
+  private readonly subscriptionsEvent = 'subscriptions';
 
   constructor() {
     super();
-    this.socketOpen = false;
-    this.askingClose = false;
-    this.eventHandler = new EventHandler(this);
   }
 
   async connect(): Promise<void> {
-    this.socketConnecting = true;
-    const response = await got
-      .post(this.publicBulletEndPoint, { headers: { host: this.rootApi } })
-      .json<PublicToken>();
+    if (!this.clientList.length) {
+      const newClient = new Client(this, () => this.emitSubscriptions());
 
-    if (!response.data || !response.data.token) {
-      const invalidTokenError = new Error('Invalid public token from KuCoin');
-
-      this.socketConnecting = false;
-      this.emit(this.emitChannel.ERROR, invalidTokenError);
-      throw invalidTokenError;
-    }
-
-    const { token, instanceServers } = response.data;
-    const { endpoint, pingInterval } = instanceServers[0];
-
-    this.askingClose = false;
-    this.eventHandler.clearCandleCache();
-    this.connectId = randomBytes(this.lengthConnectId).toString('hex');
-    this.pingIntervalMs = pingInterval;
-    this.wsPath = `${endpoint}?token=${token}&connectId=${this.connectId}`;
-
-    await this.openWebsocketConnection();
-
-    if (this.subscriptions.length) {
-      this.restartPreviousSubscriptions();
+      await newClient.connect();
+      this.clientList.push(newClient);
     }
   }
 
   subscribeTicker(symbol: string): void {
-    this.requireSocketToBeOpen();
-    const formatSymbol = symbol.replace('/', '-');
-    const indexSubscription = `ticker-${symbol}`;
+    const alreadySubscribed = this.clientList.some((client: Client) =>
+      client.getSubscriptions().includes(getTickerSubscriptionKey(symbol)),
+    );
 
-    if (this.subscriptions.includes(indexSubscription)) {
+    if (alreadySubscribed) {
       return;
     }
 
-    if (!this.ws.readyState) {
-      this.emit(
-        this.emitChannel.SOCKET_NOT_READY,
-        `socket not ready to subscribe ticker for: ${symbol}, retrying in ${this.retryTimeoutMs}ms`,
-      );
-      setTimeout(() => this.subscribeTicker(symbol), this.retryTimeoutMs).unref();
-
-      return;
-    }
-
-    this.addSubscription(indexSubscription);
-
-    this.queueProcessor.push(() => {
-      const id = `sub-ticker-${Date.now()}`;
-
-      this.eventHandler.waitForEvent('ack', id, (result: boolean) => {
-        if (result) {
-          return;
-        }
-
-        this.removeSubscription(indexSubscription);
-      });
-
-      this.send(
-        JSON.stringify({
-          id,
-          type: 'subscribe',
-          topic: `/market/ticker:${formatSymbol}`,
-          privateChannel: false,
-          response: true,
-        }),
-        (error?: Error) => {
-          if (error) {
-            this.emit(this.emitChannel.ERROR, error);
-
-            return this.removeSubscription(indexSubscription);
-          }
-        },
-      );
-    });
+    this.getLastClient().then((client: Client) => client.subscribeTicker(symbol));
   }
 
   unsubscribeTicker(symbol: string): void {
-    this.requireSocketToBeOpen();
-    const formatSymbol = symbol.replace('/', '-');
-    const indexSubscription = `ticker-${symbol}`;
+    const alreadySubscribed = this.clientList.some((client: Client) =>
+      client.getSubscriptions().includes(getTickerSubscriptionKey(symbol)),
+    );
 
-    if (!this.subscriptions.includes(indexSubscription)) {
+    if (!alreadySubscribed) {
       return;
     }
 
-    this.queueProcessor.push(() => {
-      const id = `unsub-ticker-${Date.now()}`;
+    const client = this.clientList.find((client: Client) =>
+      client.getSubscriptions().includes(getTickerSubscriptionKey(symbol)),
+    );
 
-      this.eventHandler.waitForEvent('ack', id, (result: boolean) => {
-        if (result) {
-          return;
-        }
-
-        this.addSubscription(indexSubscription);
-      });
-
-      this.send(
-        JSON.stringify({
-          id,
-          type: 'unsubscribe',
-          topic: `/market/ticker:${formatSymbol}`,
-          privateChannel: false,
-          response: true,
-        }),
-        (error?: Error) => {
-          if (error) {
-            this.emit(this.emitChannel.ERROR, error);
-
-            return this.addSubscription(indexSubscription);
-          }
-        },
-      );
-    });
-    this.removeSubscription(indexSubscription);
+    client.unsubscribeTicker(symbol);
   }
 
   subscribeCandle(symbol: string, interval: string): void {
-    this.requireSocketToBeOpen();
-    const formatSymbol = symbol.replace('/', '-');
-    const formatInterval = mapCandleInterval[interval];
+    const alreadySubscribed = this.clientList.some((client: Client) =>
+      client.getSubscriptions().includes(getCandleSubscriptionKey(symbol, interval)),
+    );
 
-    if (!formatInterval) {
-      throw new TypeError(`Wrong format waiting for: ${Object.keys(mapCandleInterval).join(', ')}`);
-    }
-
-    const indexSubscription = `candle-${symbol}-${interval}`;
-
-    if (this.subscriptions.includes(indexSubscription)) {
+    if (alreadySubscribed) {
       return;
     }
 
-    if (!this.ws.readyState) {
-      this.emit(
-        this.emitChannel.SOCKET_NOT_READY,
-        `socket not ready to subscribe candle for: ${symbol} ${interval}, retrying in ${this.retryTimeoutMs}ms`,
-      );
-      setTimeout(() => this.subscribeCandle(symbol, interval), this.retryTimeoutMs).unref();
-
-      return;
-    }
-
-    this.addSubscription(indexSubscription);
-
-    this.queueProcessor.push(() => {
-      const id = `sub-candle-${Date.now()}`;
-
-      this.eventHandler.waitForEvent('ack', id, (result: boolean) => {
-        if (result) {
-          return;
-        }
-
-        this.removeSubscription(indexSubscription);
-      });
-
-      this.send(
-        JSON.stringify({
-          id,
-          type: 'subscribe',
-          topic: `/market/candles:${formatSymbol}_${formatInterval}`,
-          privateChannel: false,
-          response: true,
-        }),
-        (error?: Error) => {
-          if (error) {
-            this.emit(this.emitChannel.ERROR, error);
-
-            return this.removeSubscription(indexSubscription);
-          }
-        },
-      );
-    });
+    this.getLastClient().then((client: Client) => client.subscribeCandle(symbol, interval));
   }
 
   unsubscribeCandle(symbol: string, interval: string): void {
-    this.requireSocketToBeOpen();
-    const formatSymbol = symbol.replace('/', '-');
-    const formatInterval = mapCandleInterval[interval];
+    const alreadySubscribed = this.clientList.some((client: Client) =>
+      client.getSubscriptions().includes(getCandleSubscriptionKey(symbol, interval)),
+    );
 
-    if (!formatInterval) {
-      throw new TypeError(`Wrong format waiting for: ${Object.keys(mapCandleInterval).join(', ')}`);
-    }
-
-    const indexSubscription = `candle-${symbol}-${interval}`;
-
-    if (!this.subscriptions.includes(indexSubscription)) {
+    if (!alreadySubscribed) {
       return;
     }
 
-    this.queueProcessor.push(() => {
-      const id = `unsub-candle-${Date.now()}`;
+    const client = this.clientList.find((client: Client) =>
+      client.getSubscriptions().includes(getCandleSubscriptionKey(symbol, interval)),
+    );
 
-      this.eventHandler.waitForEvent('ack', id, (result: boolean) => {
-        if (result) {
-          this.eventHandler.deleteCandleCache(indexSubscription);
-
-          return;
-        }
-
-        this.addSubscription(indexSubscription);
-      });
-
-      this.send(
-        JSON.stringify({
-          id,
-          type: 'unsubscribe',
-          topic: `/market/candles:${formatSymbol}_${formatInterval}`,
-          privateChannel: false,
-          response: true,
-        }),
-        (error?: Error) => {
-          if (error) {
-            this.emit(this.emitChannel.ERROR, error);
-
-            return this.addSubscription(indexSubscription);
-          }
-        },
-      );
-    });
-
-    this.removeSubscription(indexSubscription);
+    client.unsubscribeCandle(symbol, interval);
   }
 
   closeConnection(): void {
-    if (this.subscriptions.length) {
-      throw new Error(`You have activated subscriptions! (${this.subscriptions.length})`);
-    }
-
-    this.askingClose = true;
-    this.ws.close();
+    this.clientList.forEach((client: Client) => client.closeConnection());
   }
 
   isSocketOpen(): boolean {
-    return this.socketOpen;
+    return this.clientList.every((client) => client.isSocketOpen());
   }
 
   isSocketConnecting(): boolean {
-    return this.socketConnecting;
+    return this.clientList.some((client) => client.isSocketConnecting());
   }
 
   getSubscriptionNumber(): number {
-    return this.subscriptions.length;
-  }
-
-  private removeSubscription(index: string): void {
-    if (!this.subscriptions.includes(index)) {
-      return;
-    }
-
-    this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== index);
-    this.emit(this.emitChannel.SUBSCRIPTIONS, this.subscriptions);
-  }
-
-  private addSubscription(index: string): void {
-    if (this.subscriptions.includes(index)) {
-      return;
-    }
-
-    this.subscriptions.push(index);
-    this.emit(this.emitChannel.SUBSCRIPTIONS, this.subscriptions);
-  }
-
-  private send(data: string, sendCb = noop) {
-    if (!this.ws) {
-      return;
-    }
-
-    this.ws.send(data, sendCb);
-  }
-
-  private restartPreviousSubscriptions() {
-    if (!this.socketOpen) {
-      return;
-    }
-
-    if (!this.ws.readyState) {
-      this.emit(this.emitChannel.SOCKET_NOT_READY, 'retry later to restart previous subscriptions');
-      setTimeout(() => this.restartPreviousSubscriptions(), this.retryTimeoutMs).unref();
-
-      return;
-    }
-
-    const previousSubs = [].concat(this.subscriptions);
-    this.subscriptions.length = 0;
-
-    for (const subscription of previousSubs) {
-      const [type, symbol, timeFrame] = subscription.split('-') as string[];
-
-      if (type === 'ticker') {
-        this.subscribeTicker(symbol);
-      }
-
-      if (type === 'candle') {
-        this.subscribeCandle(symbol, timeFrame);
-      }
-    }
-  }
-
-  private requireSocketToBeOpen(): void {
-    if (!this.socketOpen) {
-      throw new Error('Please call connect before subscribing');
-    }
-  }
-
-  private sendPing() {
-    this.requireSocketToBeOpen();
-    this.send(
-      JSON.stringify({
-        id: Date.now(),
-        type: 'ping',
-      }),
+    return this.clientList.reduce(
+      (acc: number, client: Client) => acc + client.getSubscriptionNumber(),
+      0,
     );
   }
 
-  private startPing() {
-    clearInterval(this.pingTimer);
-    this.pingTimer = setInterval(() => this.sendPing(), this.pingIntervalMs);
-  }
+  private async getLastClient(): Promise<Client> {
+    const lastClient = this.clientList[this.clientList.length - 1];
 
-  private stopPing() {
-    clearInterval(this.pingTimer);
-  }
+    if (!lastClient || lastClient.getSubscriptionNumber() >= this.maxSubscriptions) {
+      const newClient = new Client(this, () => this.emitSubscriptions());
 
-  private async reconnect() {
-    await delay(this.retryTimeoutMs);
-    this.emit(this.emitChannel.RECONNECT, `reconnect with ${this.subscriptions.length} sockets...`);
-    this.connect();
-  }
+      await newClient.connect();
+      this.clientList.push(newClient);
 
-  private async openWebsocketConnection(): Promise<void> {
-    if (this.socketOpen) {
-      return;
+      return newClient;
     }
 
-    this.ws = new WebSocket(this.wsPath, {
-      perMessageDeflate: false,
-      handshakeTimeout: this.retryTimeoutMs,
-    });
-
-    this.ws.on('message', (data: string) => {
-      this.eventHandler.processMessage(data);
-    });
-
-    this.ws.on('close', () => {
-      this.queueProcessor.end();
-      this.socketOpen = false;
-      this.stopPing();
-      this.ws = undefined;
-
-      if (!this.askingClose) {
-        this.reconnect();
-      }
-    });
-
-    this.ws.on('error', (ws: WebSocket, error: Error) => {
-      this.emit(this.emitChannel.ERROR, error);
-    });
-
-    await this.waitOpenSocket();
-    const welcomeResult = await this.eventHandler.waitForEvent('welcome', this.connectId);
-
-    if (!welcomeResult) {
-      const welcomeError = new Error('No welcome message from KuCoin received!');
-
-      this.emit(this.emitChannel.ERROR, welcomeError);
-      throw welcomeError;
-    }
-
-    this.socketOpen = true;
-    this.socketConnecting = false;
-    this.startPing();
+    return lastClient;
   }
 
-  private waitOpenSocket(): Promise<void> {
-    return new Promise((resolve) => {
-      this.ws.on('open', () => {
-        resolve();
-      });
-    });
+  private emitSubscriptions(): void {
+    const allSubscriptions = this.clientList.reduce(
+      (acc: string[], client: Client) => acc.concat(client.getSubscriptions()),
+      [],
+    );
+
+    this.emit(this.subscriptionsEvent, allSubscriptions);
   }
 }
