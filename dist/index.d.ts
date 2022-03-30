@@ -1,20 +1,8 @@
 import Emittery from 'emittery';
 export declare class KuCoinWs extends Emittery {
-    private readonly queueProcessor;
-    private readonly rootApi;
-    private readonly publicBulletEndPoint;
-    private readonly lengthConnectId;
-    private readonly retryTimeoutMs;
-    private ws;
-    private socketOpen;
-    private socketConnecting;
-    private askingClose;
-    private connectId;
-    private pingIntervalMs;
-    private pingTimer;
-    private wsPath;
-    private subscriptions;
-    private eventHandler;
+    private readonly clientList;
+    private readonly maxSubscriptions;
+    private readonly subscriptionsEvent;
     constructor();
     connect(): Promise<void>;
     subscribeTicker(symbol: string): void;
@@ -25,15 +13,6 @@ export declare class KuCoinWs extends Emittery {
     isSocketOpen(): boolean;
     isSocketConnecting(): boolean;
     getSubscriptionNumber(): number;
-    private removeSubscription;
-    private addSubscription;
-    private send;
-    private restartPreviousSubscriptions;
-    private requireSocketToBeOpen;
-    private sendPing;
-    private startPing;
-    private stopPing;
-    private reconnect;
-    private openWebsocketConnection;
-    private waitOpenSocket;
+    private getLastClient;
+    private emitSubscriptions;
 }

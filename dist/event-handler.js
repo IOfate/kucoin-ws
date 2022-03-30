@@ -23,8 +23,7 @@ class EventHandler {
                 }
             };
             this.mapResolveWaitEvent[eventKey] = () => cb(true);
-            const timer = setTimeout(() => cb(false), this.maxWaiting);
-            timer.unref();
+            setTimeout(() => cb(false), this.maxWaiting).unref();
         });
     }
     processMessage(message) {
