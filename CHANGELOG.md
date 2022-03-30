@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.0](https://github.com/IOfate/kucoin-ws/compare/v1.4.1...v1.5.0) (2022-03-30)
+
+
+### Features
+
+* **core:** handle kucoin hard limit for sockets per client ([e4159c8](https://github.com/IOfate/kucoin-ws/commit/e4159c8d1e906efdf2f472c3aa430896298f99cc))
+
+
+### Bug Fixes
+
+* **core:** add a map to centralize our events ([77f816c](https://github.com/IOfate/kucoin-ws/commit/77f816cc8c75400c7f0267210c77c5f5db73d747))
+* **core:** use get last client when we call connect ([fdec646](https://github.com/IOfate/kucoin-ws/commit/fdec646f36b6cceec243cc54bcf7f1626051a6b8))
+* **doc:** remove broken deps badges ([c1fd3cd](https://github.com/IOfate/kucoin-ws/commit/c1fd3cd1ca1300ca5799a8c99aacfc7e6844bd0d))
+
 ### [1.4.1](https://github.com/IOfate/kucoin-ws/compare/v1.4.0...v1.4.1) (2022-03-29)
 
 

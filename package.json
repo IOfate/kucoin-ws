@@ -1,6 +1,6 @@
 {
   "name": "@iofate/kucoin-ws",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "Node.js websocket client for KuCoin",
   "main": "dist/index.js",
   "scripts": {
