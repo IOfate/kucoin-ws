@@ -76,7 +76,7 @@ export class Client {
 
   subscribeTicker(symbol: string): void {
     this.requireSocketToBeOpen();
-    const formatSymbol = symbol.replace('/', '-');
+    const formatSymbol = symbol.split('/').join('-');
     const indexSubscription = getTickerSubscriptionKey(symbol);
 
     if (this.subscriptions.includes(indexSubscription)) {
@@ -127,7 +127,7 @@ export class Client {
 
   unsubscribeTicker(symbol: string): void {
     this.requireSocketToBeOpen();
-    const formatSymbol = symbol.replace('/', '-');
+    const formatSymbol = symbol.split('/').join('-');
     const indexSubscription = getTickerSubscriptionKey(symbol);
 
     if (!this.subscriptions.includes(indexSubscription)) {

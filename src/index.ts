@@ -18,20 +18,30 @@ export class KuCoinWs extends Emittery {
   }
 
   subscribeTicker(symbol: string): void {
+    this.subscribeTickers([symbol]);
+  }
+
+  subscribeTickers(symbols: string[]): void {
+    const symbolsArrayAsString = symbols.join(',');
     const alreadySubscribed = this.clientList.some((client: Client) =>
-      client.getSubscriptions().includes(getTickerSubscriptionKey(symbol)),
+      client.getSubscriptions().includes(getTickerSubscriptionKey(symbolsArrayAsString)),
     );
 
     if (alreadySubscribed) {
       return;
     }
 
-    this.getLastClient().then((client: Client) => client.subscribeTicker(symbol));
+    this.getLastClient().then((client: Client) => client.subscribeTicker(symbolsArrayAsString));
   }
 
   unsubscribeTicker(symbol: string): void {
+    this.unsubscribeTickers([symbol]);
+  }
+
+  unsubscribeTickers(symbols: string[]): void {
+    const symbolsArrayAsString = symbols.join(',');
     const alreadySubscribed = this.clientList.some((client: Client) =>
-      client.getSubscriptions().includes(getTickerSubscriptionKey(symbol)),
+      client.getSubscriptions().includes(getTickerSubscriptionKey(symbolsArrayAsString)),
     );
 
     if (!alreadySubscribed) {
@@ -39,10 +49,10 @@ export class KuCoinWs extends Emittery {
     }
 
     const client = this.clientList.find((client: Client) =>
-      client.getSubscriptions().includes(getTickerSubscriptionKey(symbol)),
+      client.getSubscriptions().includes(getTickerSubscriptionKey(symbolsArrayAsString)),
     );
 
-    client.unsubscribeTicker(symbol);
+    client.unsubscribeTicker(symbolsArrayAsString);
   }
 
   subscribeCandle(symbol: string, interval: string): void {
