@@ -16,6 +16,7 @@ This package is made by the IOfate company and is open source, feel free to use 
 - [Install](#install)
 - [How to use it](#how-to-use-it)
 - [API](#api)
+- [Contributing](#contributing)
 
 ## Features
 
@@ -182,3 +183,7 @@ Return a boolean which indicate if the socket is connecting or not.
 ### kuCoinWs.getSubscriptionNumber()
 
 Return the number of subscriptions.
+
+## Contributing
+
+Any merge request must follow [conventional commits](https://conventionalcommits.org/) format.
