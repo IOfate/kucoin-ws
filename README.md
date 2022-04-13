@@ -10,6 +10,13 @@ Websocket API documentation: https://docs.kucoin.com/#websocket-feed
 
 This package is made by the IOfate company and is open source, feel free to use it, share it and contribute!
 
+## Table of contents
+
+- [Features](#features)
+- [Install](#install)
+- [How to use it](#how-to-use-it)
+- [API](#api)
+
 ## Features
 
 - [x] Price ticks
