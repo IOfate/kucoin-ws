@@ -29,6 +29,10 @@ export class KuCoinWs extends Emittery {
     this.getLastClient().then((client: Client) => client.subscribeTicker(symbol));
   }
 
+  subscribeTickers(symbols: string[]): void {
+    symbols.forEach((symbol: string) => this.subscribeTicker(symbol));
+  }
+
   unsubscribeTicker(symbol: string): void {
     const alreadySubscribed = this.clientList.some((client: Client) =>
       client.getSubscriptions().includes(getTickerSubscriptionKey(symbol)),
@@ -43,6 +47,10 @@ export class KuCoinWs extends Emittery {
     );
 
     client.unsubscribeTicker(symbol);
+  }
+
+  unsubscribeTickers(symbols: string[]): void {
+    symbols.forEach((symbol: string) => this.unsubscribeTicker(symbol));
   }
 
   subscribeCandle(symbol: string, interval: string): void {

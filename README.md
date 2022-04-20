@@ -115,6 +115,23 @@ kuCoinWs.subscribeTicker('BTC/USDT');
 kuCoinWs.on('ticker-BTC/USDT', ticker => console.log(ticker));
 ```
 
+### kuCoinWs.subscribeTickers(symbols)
+
+Subscribe to the websocket ticker of a symbol list.
+Once called you'll be able to listen to ticker events for all of those symbols.
+**`connect` method must be called before calling this one.**
+
+```js
+import { KuCoinWs } from '@iofate/kucoin-ws';
+
+const kuCoinWs = new KuCoinWs();
+
+await kuCoinWs.connect();
+kuCoinWs.subscribeTickers(['BTC/USDT', 'ETH/USDT']);
+kuCoinWs.on('ticker-BTC/USDT', ticker => console.log(ticker));
+kuCoinWs.on('ticker-ETH/USDT', ticker => console.log(ticker));
+```
+
 ### kuCoinWs.unsubscribeTicker(symbol)
 
 Unsubscribe from the ticker websocket of the associated symbol.
@@ -130,6 +147,21 @@ kuCoinWs.subscribeTicker('BTC/USDT');
 const stopListenFn = kuCoinWs.on('ticker-BTC/USDT', ticker => console.log(ticker));
 kuCoinWs.unsubscribeTicker('BTC/USDT');
 stopListenFn();
+```
+
+### kuCoinWs.unsubscribeTickers(symbols)
+
+Unsubscribe from the ticker websocket for the list of symbols.
+Once called no more events will be dispatched.
+
+```js
+import { KuCoinWs } from '@iofate/kucoin-ws';
+
+const kuCoinWs = new KuCoinWs();
+
+await kuCoinWs.connect();
+kuCoinWs.subscribeTickers(['BTC/USDT', 'ETH/USDT']);
+kuCoinWs.unsubscribeTickers(['BTC/USDT', 'ETH/USDT']);
 ```
 
 ### kuCoinWs.subscribeCandles(symbol, timeFrame)

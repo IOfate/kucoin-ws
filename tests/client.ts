@@ -11,8 +11,7 @@ const main = async () => {
   client.on('candle-BTC/USDT-1m', candleBtc => console.log(candleBtc));
 
   await client.connect();
-  client.subscribeTicker('BTC/USDT');
-  client.subscribeTicker('ETH/USDT');
+  client.subscribeTickers(['BTC/USDT', 'ETH/USDT']);
   client.subscribeTicker('LTC/USDT');
   client.subscribeTicker('FIL/USDT');
   client.subscribeTicker('VET/USDT');
