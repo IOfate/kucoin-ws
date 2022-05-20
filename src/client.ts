@@ -392,6 +392,7 @@ export class Client {
       return;
     }
 
+    this.queueProcessor.start();
     this.ws = new WebSocket(this.wsPath, {
       perMessageDeflate: false,
       handshakeTimeout: this.retryTimeoutMs,
