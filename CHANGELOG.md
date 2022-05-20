@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/IOfate/kucoin-ws/compare/v1.5.0...v1.6.0) (2022-05-20)
+
+
+### Features
+
+* **core:** add ability to subscribe/unsubscribe to a list of tickers ([6200207](https://github.com/IOfate/kucoin-ws/commit/6200207a44bf56b7e0cedc3fc94d24375ee5d564))
+
+
+### Bug Fixes
+
+* **client:** restart queue when we restart the client ([792a5c3](https://github.com/IOfate/kucoin-ws/commit/792a5c33e0e604ade1ef024ce1749f8f9bebe50a))
+
 ## [1.5.0](https://github.com/IOfate/kucoin-ws/compare/v1.4.1...v1.5.0) (2022-03-30)
 
 
