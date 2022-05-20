@@ -25,6 +25,9 @@ class KuCoinWs extends emittery_1.default {
         }
         this.getLastClient().then((client) => client.subscribeTicker(symbol));
     }
+    subscribeTickers(symbols) {
+        symbols.forEach((symbol) => this.subscribeTicker(symbol));
+    }
     unsubscribeTicker(symbol) {
         const alreadySubscribed = this.clientList.some((client) => client.getSubscriptions().includes((0, util_1.getTickerSubscriptionKey)(symbol)));
         if (!alreadySubscribed) {
@@ -32,6 +35,9 @@ class KuCoinWs extends emittery_1.default {
         }
         const client = this.clientList.find((client) => client.getSubscriptions().includes((0, util_1.getTickerSubscriptionKey)(symbol)));
         client.unsubscribeTicker(symbol);
+    }
+    unsubscribeTickers(symbols) {
+        symbols.forEach((symbol) => this.unsubscribeTicker(symbol));
     }
     subscribeCandle(symbol, interval) {
         const alreadySubscribed = this.clientList.some((client) => client.getSubscriptions().includes((0, util_1.getCandleSubscriptionKey)(symbol, interval)));

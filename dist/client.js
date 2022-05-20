@@ -282,6 +282,7 @@ class Client {
         if (this.socketOpen) {
             return;
         }
+        this.queueProcessor.start();
         this.ws = new ws_1.default(this.wsPath, {
             perMessageDeflate: false,
             handshakeTimeout: this.retryTimeoutMs,

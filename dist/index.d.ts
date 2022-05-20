@@ -6,7 +6,9 @@ export declare class KuCoinWs extends Emittery {
     constructor();
     connect(): Promise<void>;
     subscribeTicker(symbol: string): void;
+    subscribeTickers(symbols: string[]): void;
     unsubscribeTicker(symbol: string): void;
+    unsubscribeTickers(symbols: string[]): void;
     subscribeCandle(symbol: string, interval: string): void;
     unsubscribeCandle(symbol: string, interval: string): void;
     closeConnection(): void;
