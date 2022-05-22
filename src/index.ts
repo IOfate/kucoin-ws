@@ -6,7 +6,7 @@ import { getCandleSubscriptionKey, getTickerSubscriptionKey } from './util';
 
 export class KuCoinWs extends Emittery {
   private readonly clientList: Client[] = [];
-  private readonly maxSubscriptions = 298;
+  private readonly maxSubscriptions = 98;
   private readonly subscriptionsEvent = 'subscriptions';
 
   constructor() {
