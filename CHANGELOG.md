@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/IOfate/kucoin-ws/compare/v1.6.1...v1.7.0) (2022-05-22)
+
+
+### Features
+
+* **core:** add a method to see subscriptions attached to a client ([e0dfb66](https://github.com/IOfate/kucoin-ws/commit/e0dfb66cf1763cdd6ff596030ba00b33841d5805))
+* **core:** emit retry subscription events ([1af61b7](https://github.com/IOfate/kucoin-ws/commit/1af61b74ed55a51344617ea4f2235bb76d2684f3))
+
+
+### Bug Fixes
+
+* **client:** improve is open socket detection ([5b01706](https://github.com/IOfate/kucoin-ws/commit/5b017065b21c78b8d1ee8f3372a68f6c5b8b8dea))
+* **client:** just push new subscriptions and wait for the socket to be open ([b7d0b3d](https://github.com/IOfate/kucoin-ws/commit/b7d0b3d2e18a3e781a8ef0ba06e9ead8aa9bdd75))
+* **core:** make get last client sync ([5495e19](https://github.com/IOfate/kucoin-ws/commit/5495e19dc9b0998ee75c64400832e6050db90dd2))
+* **core:** on error emit retry when we retry ([6a903e4](https://github.com/IOfate/kucoin-ws/commit/6a903e4d1df3ffd41ad8343d676986d7ec8b9ad6))
+* **core:** reduce max subs per socket ([59be1d7](https://github.com/IOfate/kucoin-ws/commit/59be1d76c30118b2c01891202d82029267be017d))
+* **core:** split sockets at 98 ([1e5d62b](https://github.com/IOfate/kucoin-ws/commit/1e5d62bd6f21b52ce8083becab75713e618ace15))
+* **core:** use token to identify clients ([0018a3d](https://github.com/IOfate/kucoin-ws/commit/0018a3d84cc5d4976f3feb463a731813d908d4c9))
+
 ### [1.6.1](https://github.com/IOfate/kucoin-ws/compare/v1.6.0...v1.6.1) (2022-05-22)
 
 
