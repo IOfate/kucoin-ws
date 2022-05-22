@@ -33,6 +33,7 @@ export class Client {
   private pingIntervalMs: number;
   private pingTimer: NodeJS.Timer;
   private wsPath: string;
+  private publicToken: string;
   private subscriptions: string[] = [];
   private eventHandler: EventHandler;
 
@@ -66,6 +67,7 @@ export class Client {
     this.eventHandler.clearCandleCache();
     this.connectId = randomBytes(this.lengthConnectId).toString('hex');
     this.pingIntervalMs = pingInterval;
+    this.publicToken = token;
     this.wsPath = `${endpoint}?token=${token}&connectId=${this.connectId}`;
 
     await this.openWebsocketConnection();
@@ -73,6 +75,10 @@ export class Client {
     if (this.subscriptions.length) {
       this.restartPreviousSubscriptions();
     }
+  }
+
+  getPublicToken(): string {
+    return this.publicToken;
   }
 
   subscribeTicker(symbol: string): void {
