@@ -15,15 +15,16 @@ class KuCoinWs extends emittery_1.default {
         this.maxSubscriptions = 298;
         this.subscriptionsEvent = 'subscriptions';
     }
-    async connect() {
-        await this.getLastClient();
+    connect() {
+        this.getLastClient();
+        return Promise.resolve();
     }
     subscribeTicker(symbol) {
         const alreadySubscribed = this.clientList.some((client) => client.getSubscriptions().includes((0, util_1.getTickerSubscriptionKey)(symbol)));
         if (alreadySubscribed) {
             return;
         }
-        this.getLastClient().then((client) => client.subscribeTicker(symbol));
+        this.getLastClient().subscribeTicker(symbol);
     }
     subscribeTickers(symbols) {
         symbols.forEach((symbol) => this.subscribeTicker(symbol));
@@ -44,7 +45,7 @@ class KuCoinWs extends emittery_1.default {
         if (alreadySubscribed) {
             return;
         }
-        this.getLastClient().then((client) => client.subscribeCandle(symbol, interval));
+        this.getLastClient().subscribeCandle(symbol, interval);
     }
     unsubscribeCandle(symbol, interval) {
         const alreadySubscribed = this.clientList.some((client) => client.getSubscriptions().includes((0, util_1.getCandleSubscriptionKey)(symbol, interval)));
@@ -66,12 +67,12 @@ class KuCoinWs extends emittery_1.default {
     getSubscriptionNumber() {
         return this.clientList.reduce((acc, client) => acc + client.getSubscriptionNumber(), 0);
     }
-    async getLastClient() {
+    getLastClient() {
         const lastClient = this.clientList[this.clientList.length - 1];
         if (!lastClient || lastClient.getSubscriptionNumber() >= this.maxSubscriptions) {
             const newClient = new client_1.Client(this, () => this.emitSubscriptions());
             this.clientList.push(newClient);
-            await newClient.connect();
+            newClient.connect();
             return newClient;
         }
         return lastClient;
