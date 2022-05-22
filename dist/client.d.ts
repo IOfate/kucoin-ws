@@ -7,6 +7,7 @@ export declare class Client {
     private readonly publicBulletEndPoint;
     private readonly lengthConnectId;
     private readonly retryTimeoutMs;
+    private readonly retrySubscription;
     private readonly emitChannel;
     private ws;
     private socketOpen;
