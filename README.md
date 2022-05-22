@@ -68,6 +68,7 @@ There are several events which are emitted in different contexts.
 - `subscriptions`: emitted when a new subscription is made or closed
 - `socket-not-ready`: emitted when the socket is not ready to subscribe (will try to subscribe later)
 - `reconnect`: emitted when a reconnection occurred
+- `retry-subscription`: emitted event when we retry to subscribe
 - `error`: emitted when an error occurred
 
 ```js
@@ -215,6 +216,10 @@ Return a boolean which indicate if the socket is connecting or not.
 ### kuCoinWs.getSubscriptionNumber()
 
 Return the number of subscriptions.
+
+### kuCoinWs.getMapClientSubscriptionNumber()
+
+Return a map which shows how many subscriptions we have for each sockets.
 
 ## Contributing
 
