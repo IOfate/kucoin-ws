@@ -57,7 +57,6 @@ class Client {
         }
     }
     subscribeTicker(symbol) {
-        this.requireSocketToBeOpen();
         const formatSymbol = symbol.replace('/', '-');
         const indexSubscription = (0, util_1.getTickerSubscriptionKey)(symbol);
         if (this.subscriptions.includes(indexSubscription)) {
@@ -69,29 +68,36 @@ class Client {
             return;
         }
         this.addSubscription(indexSubscription);
-        this.queueProcessor.push(() => {
-            const id = `sub-ticker-${Date.now()}`;
-            this.eventHandler.waitForEvent('ack', id, (result) => {
-                if (result) {
-                    return;
-                }
-                this.removeSubscription(indexSubscription);
-                setTimeout(() => this.subscribeTicker(symbol), this.retrySubscription).unref();
-            });
-            this.send(JSON.stringify({
-                id,
-                type: 'subscribe',
-                topic: `/market/ticker:${formatSymbol}`,
-                privateChannel: false,
-                response: true,
-            }), (error) => {
-                if (error) {
-                    this.emitter.emit(this.emitChannel.ERROR, error);
+        const subFn = () => {
+            this.queueProcessor.push(() => {
+                const id = `sub-ticker-${Date.now()}`;
+                this.eventHandler.waitForEvent('ack', id, (result) => {
+                    if (result) {
+                        return;
+                    }
+                    this.removeSubscription(indexSubscription);
                     setTimeout(() => this.subscribeTicker(symbol), this.retrySubscription).unref();
-                    return this.removeSubscription(indexSubscription);
-                }
+                });
+                this.send(JSON.stringify({
+                    id,
+                    type: 'subscribe',
+                    topic: `/market/ticker:${formatSymbol}`,
+                    privateChannel: false,
+                    response: true,
+                }), (error) => {
+                    if (error) {
+                        this.emitter.emit(this.emitChannel.ERROR, error);
+                        setTimeout(() => this.subscribeTicker(symbol), this.retrySubscription).unref();
+                        return this.removeSubscription(indexSubscription);
+                    }
+                });
             });
-        });
+        };
+        if (!this.socketOpen) {
+            setTimeout(() => subFn(), this.retrySubscription).unref();
+            return;
+        }
+        subFn();
     }
     unsubscribeTicker(symbol) {
         this.requireSocketToBeOpen();
@@ -124,7 +130,6 @@ class Client {
         this.removeSubscription(indexSubscription);
     }
     subscribeCandle(symbol, interval) {
-        this.requireSocketToBeOpen();
         const formatSymbol = symbol.replace('/', '-');
         const formatInterval = const_1.mapCandleInterval[interval];
         if (!formatInterval) {
@@ -140,29 +145,36 @@ class Client {
             return;
         }
         this.addSubscription(indexSubscription);
-        this.queueProcessor.push(() => {
-            const id = `sub-candle-${Date.now()}`;
-            this.eventHandler.waitForEvent('ack', id, (result) => {
-                if (result) {
-                    return;
-                }
-                this.removeSubscription(indexSubscription);
-                setTimeout(() => this.subscribeCandle(symbol, interval), this.retrySubscription).unref();
-            });
-            this.send(JSON.stringify({
-                id,
-                type: 'subscribe',
-                topic: `/market/candles:${formatSymbol}_${formatInterval}`,
-                privateChannel: false,
-                response: true,
-            }), (error) => {
-                if (error) {
-                    this.emitter.emit(this.emitChannel.ERROR, error);
+        const subFn = () => {
+            this.queueProcessor.push(() => {
+                const id = `sub-candle-${Date.now()}`;
+                this.eventHandler.waitForEvent('ack', id, (result) => {
+                    if (result) {
+                        return;
+                    }
+                    this.removeSubscription(indexSubscription);
                     setTimeout(() => this.subscribeCandle(symbol, interval), this.retrySubscription).unref();
-                    return this.removeSubscription(indexSubscription);
-                }
+                });
+                this.send(JSON.stringify({
+                    id,
+                    type: 'subscribe',
+                    topic: `/market/candles:${formatSymbol}_${formatInterval}`,
+                    privateChannel: false,
+                    response: true,
+                }), (error) => {
+                    if (error) {
+                        this.emitter.emit(this.emitChannel.ERROR, error);
+                        setTimeout(() => this.subscribeCandle(symbol, interval), this.retrySubscription).unref();
+                        return this.removeSubscription(indexSubscription);
+                    }
+                });
             });
-        });
+        };
+        if (!this.socketOpen) {
+            setTimeout(() => subFn(), this.retrySubscription).unref();
+            return;
+        }
+        subFn();
     }
     unsubscribeCandle(symbol, interval) {
         this.requireSocketToBeOpen();
