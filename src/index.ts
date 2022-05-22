@@ -6,7 +6,7 @@ import { getCandleSubscriptionKey, getTickerSubscriptionKey } from './util';
 
 export class KuCoinWs extends Emittery {
   private readonly clientList: Client[] = [];
-  private readonly maxSubscriptions = 300;
+  private readonly maxSubscriptions = 298;
   private readonly subscriptionsEvent = 'subscriptions';
 
   constructor() {
@@ -106,8 +106,8 @@ export class KuCoinWs extends Emittery {
     if (!lastClient || lastClient.getSubscriptionNumber() >= this.maxSubscriptions) {
       const newClient = new Client(this, () => this.emitSubscriptions());
 
-      await newClient.connect();
       this.clientList.push(newClient);
+      await newClient.connect();
 
       return newClient;
     }
