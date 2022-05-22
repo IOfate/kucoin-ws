@@ -18,6 +18,7 @@ export class Client {
   private readonly publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
   private readonly lengthConnectId = 24;
   private readonly retryTimeoutMs = 5000;
+  private readonly retrySubscription = 2000;
   private readonly emitChannel = {
     ERROR: 'error',
     RECONNECT: 'reconnect',
@@ -104,6 +105,7 @@ export class Client {
         }
 
         this.removeSubscription(indexSubscription);
+        setTimeout(() => this.subscribeTicker(symbol), this.retrySubscription).unref();
       });
 
       this.send(
@@ -118,6 +120,7 @@ export class Client {
           if (error) {
             this.emitter.emit(this.emitChannel.ERROR, error);
 
+            setTimeout(() => this.subscribeTicker(symbol), this.retrySubscription).unref();
             return this.removeSubscription(indexSubscription);
           }
         },
@@ -201,6 +204,7 @@ export class Client {
         }
 
         this.removeSubscription(indexSubscription);
+        setTimeout(() => this.subscribeCandle(symbol, interval), this.retrySubscription).unref();
       });
 
       this.send(
@@ -215,6 +219,10 @@ export class Client {
           if (error) {
             this.emitter.emit(this.emitChannel.ERROR, error);
 
+            setTimeout(
+              () => this.subscribeCandle(symbol, interval),
+              this.retrySubscription,
+            ).unref();
             return this.removeSubscription(indexSubscription);
           }
         },
