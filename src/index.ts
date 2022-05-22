@@ -102,6 +102,18 @@ export class KuCoinWs extends Emittery {
     );
   }
 
+  getMapClientSubscriptionNumber(): { [clientIndex: number]: number } {
+    return this.clientList.reduce(
+      (acc: { [clientIndex: number]: number }, client: Client, index: number) => {
+        return {
+          ...acc,
+          [index]: client.getSubscriptionNumber(),
+        };
+      },
+      {},
+    );
+  }
+
   private getLastClient(): Client {
     const lastClient = this.clientList[this.clientList.length - 1];
 

@@ -30,6 +30,7 @@ const main = async () => {
 
   client.unsubscribeTicker('BTC/USDT');
   unSubFn();
+  console.log(client.getMapClientSubscriptionNumber());
 };
 
 main();
