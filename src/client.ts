@@ -24,6 +24,7 @@ export class Client {
     RECONNECT: 'reconnect',
     SOCKET_NOT_READY: 'socket-not-ready',
     SUBSCRIPTIONS: 'subscriptions',
+    RETRY_SUBSCRIPTION: 'retry-subscription',
   };
   private ws: WebSocket;
   private socketOpen: boolean;
@@ -110,7 +111,13 @@ export class Client {
           }
 
           this.removeSubscription(indexSubscription);
-          setTimeout(() => this.subscribeTicker(symbol), this.retrySubscription).unref();
+          setTimeout(() => {
+            this.emitter.emit(
+              this.emitChannel.RETRY_SUBSCRIPTION,
+              `retry to subscribe ticker for: ${symbol}, retrying in ${this.retrySubscription}ms`,
+            );
+            this.subscribeTicker(symbol);
+          }, this.retrySubscription).unref();
         });
 
         this.send(
@@ -125,6 +132,10 @@ export class Client {
             if (error) {
               this.emitter.emit(this.emitChannel.ERROR, error);
 
+              this.emitter.emit(
+                this.emitChannel.RETRY_SUBSCRIPTION,
+                `retry to subscribe ticker for: ${symbol}, retrying in ${this.retrySubscription}ms`,
+              );
               setTimeout(() => this.subscribeTicker(symbol), this.retrySubscription).unref();
               return this.removeSubscription(indexSubscription);
             }
@@ -217,7 +228,13 @@ export class Client {
           }
 
           this.removeSubscription(indexSubscription);
-          setTimeout(() => this.subscribeCandle(symbol, interval), this.retrySubscription).unref();
+          setTimeout(() => {
+            this.emitter.emit(
+              this.emitChannel.RETRY_SUBSCRIPTION,
+              `retry to subscribe candle for: ${symbol} ${interval}, retrying in ${this.retrySubscription}ms`,
+            );
+            this.subscribeCandle(symbol, interval);
+          }, this.retrySubscription).unref();
         });
 
         this.send(
@@ -231,7 +248,10 @@ export class Client {
           (error?: Error) => {
             if (error) {
               this.emitter.emit(this.emitChannel.ERROR, error);
-
+              this.emitter.emit(
+                this.emitChannel.RETRY_SUBSCRIPTION,
+                `retry to subscribe candle for: ${symbol} ${interval}, retrying in ${this.retrySubscription}ms`,
+              );
               setTimeout(
                 () => this.subscribeCandle(symbol, interval),
                 this.retrySubscription,
