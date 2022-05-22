@@ -13,8 +13,10 @@ export class KuCoinWs extends Emittery {
     super();
   }
 
-  async connect(): Promise<void> {
-    await this.getLastClient();
+  connect(): Promise<void> {
+    this.getLastClient();
+
+    return Promise.resolve();
   }
 
   subscribeTicker(symbol: string): void {
@@ -26,7 +28,7 @@ export class KuCoinWs extends Emittery {
       return;
     }
 
-    this.getLastClient().then((client: Client) => client.subscribeTicker(symbol));
+    this.getLastClient().subscribeTicker(symbol);
   }
 
   subscribeTickers(symbols: string[]): void {
@@ -62,7 +64,7 @@ export class KuCoinWs extends Emittery {
       return;
     }
 
-    this.getLastClient().then((client: Client) => client.subscribeCandle(symbol, interval));
+    this.getLastClient().subscribeCandle(symbol, interval);
   }
 
   unsubscribeCandle(symbol: string, interval: string): void {
@@ -100,14 +102,14 @@ export class KuCoinWs extends Emittery {
     );
   }
 
-  private async getLastClient(): Promise<Client> {
+  private getLastClient(): Client {
     const lastClient = this.clientList[this.clientList.length - 1];
 
     if (!lastClient || lastClient.getSubscriptionNumber() >= this.maxSubscriptions) {
       const newClient = new Client(this, () => this.emitSubscriptions());
 
       this.clientList.push(newClient);
-      await newClient.connect();
+      newClient.connect();
 
       return newClient;
     }
