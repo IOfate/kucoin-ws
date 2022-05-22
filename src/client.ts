@@ -76,7 +76,6 @@ export class Client {
   }
 
   subscribeTicker(symbol: string): void {
-    this.requireSocketToBeOpen();
     const formatSymbol = symbol.replace('/', '-');
     const indexSubscription = getTickerSubscriptionKey(symbol);
 
@@ -95,37 +94,46 @@ export class Client {
     }
 
     this.addSubscription(indexSubscription);
+    const subFn = () => {
+      this.queueProcessor.push(() => {
+        const id = `sub-ticker-${Date.now()}`;
 
-    this.queueProcessor.push(() => {
-      const id = `sub-ticker-${Date.now()}`;
-
-      this.eventHandler.waitForEvent('ack', id, (result: boolean) => {
-        if (result) {
-          return;
-        }
-
-        this.removeSubscription(indexSubscription);
-        setTimeout(() => this.subscribeTicker(symbol), this.retrySubscription).unref();
-      });
-
-      this.send(
-        JSON.stringify({
-          id,
-          type: 'subscribe',
-          topic: `/market/ticker:${formatSymbol}`,
-          privateChannel: false,
-          response: true,
-        }),
-        (error?: Error) => {
-          if (error) {
-            this.emitter.emit(this.emitChannel.ERROR, error);
-
-            setTimeout(() => this.subscribeTicker(symbol), this.retrySubscription).unref();
-            return this.removeSubscription(indexSubscription);
+        this.eventHandler.waitForEvent('ack', id, (result: boolean) => {
+          if (result) {
+            return;
           }
-        },
-      );
-    });
+
+          this.removeSubscription(indexSubscription);
+          setTimeout(() => this.subscribeTicker(symbol), this.retrySubscription).unref();
+        });
+
+        this.send(
+          JSON.stringify({
+            id,
+            type: 'subscribe',
+            topic: `/market/ticker:${formatSymbol}`,
+            privateChannel: false,
+            response: true,
+          }),
+          (error?: Error) => {
+            if (error) {
+              this.emitter.emit(this.emitChannel.ERROR, error);
+
+              setTimeout(() => this.subscribeTicker(symbol), this.retrySubscription).unref();
+              return this.removeSubscription(indexSubscription);
+            }
+          },
+        );
+      });
+    };
+
+    if (!this.socketOpen) {
+      setTimeout(() => subFn(), this.retrySubscription).unref();
+
+      return;
+    }
+
+    subFn();
   }
 
   unsubscribeTicker(symbol: string): void {
@@ -169,7 +177,6 @@ export class Client {
   }
 
   subscribeCandle(symbol: string, interval: string): void {
-    this.requireSocketToBeOpen();
     const formatSymbol = symbol.replace('/', '-');
     const formatInterval = mapCandleInterval[interval];
 
@@ -194,40 +201,49 @@ export class Client {
     }
 
     this.addSubscription(indexSubscription);
+    const subFn = () => {
+      this.queueProcessor.push(() => {
+        const id = `sub-candle-${Date.now()}`;
 
-    this.queueProcessor.push(() => {
-      const id = `sub-candle-${Date.now()}`;
-
-      this.eventHandler.waitForEvent('ack', id, (result: boolean) => {
-        if (result) {
-          return;
-        }
-
-        this.removeSubscription(indexSubscription);
-        setTimeout(() => this.subscribeCandle(symbol, interval), this.retrySubscription).unref();
-      });
-
-      this.send(
-        JSON.stringify({
-          id,
-          type: 'subscribe',
-          topic: `/market/candles:${formatSymbol}_${formatInterval}`,
-          privateChannel: false,
-          response: true,
-        }),
-        (error?: Error) => {
-          if (error) {
-            this.emitter.emit(this.emitChannel.ERROR, error);
-
-            setTimeout(
-              () => this.subscribeCandle(symbol, interval),
-              this.retrySubscription,
-            ).unref();
-            return this.removeSubscription(indexSubscription);
+        this.eventHandler.waitForEvent('ack', id, (result: boolean) => {
+          if (result) {
+            return;
           }
-        },
-      );
-    });
+
+          this.removeSubscription(indexSubscription);
+          setTimeout(() => this.subscribeCandle(symbol, interval), this.retrySubscription).unref();
+        });
+
+        this.send(
+          JSON.stringify({
+            id,
+            type: 'subscribe',
+            topic: `/market/candles:${formatSymbol}_${formatInterval}`,
+            privateChannel: false,
+            response: true,
+          }),
+          (error?: Error) => {
+            if (error) {
+              this.emitter.emit(this.emitChannel.ERROR, error);
+
+              setTimeout(
+                () => this.subscribeCandle(symbol, interval),
+                this.retrySubscription,
+              ).unref();
+              return this.removeSubscription(indexSubscription);
+            }
+          },
+        );
+      });
+    };
+
+    if (!this.socketOpen) {
+      setTimeout(() => subFn(), this.retrySubscription).unref();
+
+      return;
+    }
+
+    subFn();
   }
 
   unsubscribeCandle(symbol: string, interval: string): void {
