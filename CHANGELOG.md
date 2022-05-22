@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.6.1](https://github.com/IOfate/kucoin-ws/compare/v1.6.0...v1.6.1) (2022-05-22)
+
+
+### Bug Fixes
+
+* **client:** retry when a subscription failed ([1ac069a](https://github.com/IOfate/kucoin-ws/commit/1ac069a0b13d8c9f64f847d51123e1441ff5d497))
+
 ## [1.6.0](https://github.com/IOfate/kucoin-ws/compare/v1.5.0...v1.6.0) (2022-05-20)
 
 
