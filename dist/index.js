@@ -12,7 +12,7 @@ class KuCoinWs extends emittery_1.default {
     constructor() {
         super();
         this.clientList = [];
-        this.maxSubscriptions = 300;
+        this.maxSubscriptions = 298;
         this.subscriptionsEvent = 'subscriptions';
     }
     async connect() {
@@ -70,8 +70,8 @@ class KuCoinWs extends emittery_1.default {
         const lastClient = this.clientList[this.clientList.length - 1];
         if (!lastClient || lastClient.getSubscriptionNumber() >= this.maxSubscriptions) {
             const newClient = new client_1.Client(this, () => this.emitSubscriptions());
-            await newClient.connect();
             this.clientList.push(newClient);
+            await newClient.connect();
             return newClient;
         }
         return lastClient;
