@@ -50,11 +50,15 @@ class Client {
         this.eventHandler.clearCandleCache();
         this.connectId = (0, crypto_1.randomBytes)(this.lengthConnectId).toString('hex');
         this.pingIntervalMs = pingInterval;
+        this.publicToken = token;
         this.wsPath = `${endpoint}?token=${token}&connectId=${this.connectId}`;
         await this.openWebsocketConnection();
         if (this.subscriptions.length) {
             this.restartPreviousSubscriptions();
         }
+    }
+    getPublicToken() {
+        return this.publicToken;
     }
     subscribeTicker(symbol) {
         const formatSymbol = symbol.replace('/', '-');

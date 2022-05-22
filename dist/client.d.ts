@@ -17,10 +17,12 @@ export declare class Client {
     private pingIntervalMs;
     private pingTimer;
     private wsPath;
+    private publicToken;
     private subscriptions;
     private eventHandler;
     constructor(emitter: Emittery, globalEmitSubscription: () => void);
     connect(): Promise<void>;
+    getPublicToken(): string;
     subscribeTicker(symbol: string): void;
     unsubscribeTicker(symbol: string): void;
     subscribeCandle(symbol: string, interval: string): void;

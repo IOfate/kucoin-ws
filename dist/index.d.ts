@@ -16,7 +16,7 @@ export declare class KuCoinWs extends Emittery {
     isSocketConnecting(): boolean;
     getSubscriptionNumber(): number;
     getMapClientSubscriptionNumber(): {
-        [clientIndex: number]: number;
+        [clientIndex: string]: number;
     };
     private getLastClient;
     private emitSubscriptions;

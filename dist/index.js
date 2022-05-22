@@ -68,10 +68,10 @@ class KuCoinWs extends emittery_1.default {
         return this.clientList.reduce((acc, client) => acc + client.getSubscriptionNumber(), 0);
     }
     getMapClientSubscriptionNumber() {
-        return this.clientList.reduce((acc, client, index) => {
+        return this.clientList.reduce((acc, client) => {
             return {
                 ...acc,
-                [index]: client.getSubscriptionNumber(),
+                [client.getPublicToken()]: client.getSubscriptionNumber(),
             };
         }, {});
     }
