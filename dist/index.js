@@ -12,7 +12,7 @@ class KuCoinWs extends emittery_1.default {
     constructor() {
         super();
         this.clientList = [];
-        this.maxSubscriptions = 298;
+        this.maxSubscriptions = 98;
         this.subscriptionsEvent = 'subscriptions';
     }
     connect() {

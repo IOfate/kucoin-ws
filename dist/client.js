@@ -27,6 +27,7 @@ class Client {
             RECONNECT: 'reconnect',
             SOCKET_NOT_READY: 'socket-not-ready',
             SUBSCRIPTIONS: 'subscriptions',
+            RETRY_SUBSCRIPTION: 'retry-subscription',
         };
         this.subscriptions = [];
         this.socketOpen = false;
@@ -80,7 +81,10 @@ class Client {
                         return;
                     }
                     this.removeSubscription(indexSubscription);
-                    setTimeout(() => this.subscribeTicker(symbol), this.retrySubscription).unref();
+                    setTimeout(() => {
+                        this.emitter.emit(this.emitChannel.RETRY_SUBSCRIPTION, `retry to subscribe ticker for: ${symbol}, retrying in ${this.retrySubscription}ms`);
+                        this.subscribeTicker(symbol);
+                    }, this.retrySubscription).unref();
                 });
                 this.send(JSON.stringify({
                     id,
@@ -91,7 +95,10 @@ class Client {
                 }), (error) => {
                     if (error) {
                         this.emitter.emit(this.emitChannel.ERROR, error);
-                        setTimeout(() => this.subscribeTicker(symbol), this.retrySubscription).unref();
+                        setTimeout(() => {
+                            this.emitter.emit(this.emitChannel.RETRY_SUBSCRIPTION, `retry to subscribe ticker for: ${symbol}, retrying in ${this.retrySubscription}ms`);
+                            this.subscribeTicker(symbol);
+                        }, this.retrySubscription).unref();
                         return this.removeSubscription(indexSubscription);
                     }
                 });
@@ -157,7 +164,10 @@ class Client {
                         return;
                     }
                     this.removeSubscription(indexSubscription);
-                    setTimeout(() => this.subscribeCandle(symbol, interval), this.retrySubscription).unref();
+                    setTimeout(() => {
+                        this.emitter.emit(this.emitChannel.RETRY_SUBSCRIPTION, `retry to subscribe candle for: ${symbol} ${interval}, retrying in ${this.retrySubscription}ms`);
+                        this.subscribeCandle(symbol, interval);
+                    }, this.retrySubscription).unref();
                 });
                 this.send(JSON.stringify({
                     id,
@@ -168,7 +178,10 @@ class Client {
                 }), (error) => {
                     if (error) {
                         this.emitter.emit(this.emitChannel.ERROR, error);
-                        setTimeout(() => this.subscribeCandle(symbol, interval), this.retrySubscription).unref();
+                        setTimeout(() => {
+                            this.emitter.emit(this.emitChannel.RETRY_SUBSCRIPTION, `retry to subscribe candle for: ${symbol} ${interval}, retrying in ${this.retrySubscription}ms`);
+                            this.subscribeCandle(symbol, interval);
+                        }, this.retrySubscription).unref();
                         return this.removeSubscription(indexSubscription);
                     }
                 });
