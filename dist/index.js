@@ -67,6 +67,14 @@ class KuCoinWs extends emittery_1.default {
     getSubscriptionNumber() {
         return this.clientList.reduce((acc, client) => acc + client.getSubscriptionNumber(), 0);
     }
+    getMapClientSubscriptionNumber() {
+        return this.clientList.reduce((acc, client, index) => {
+            return {
+                ...acc,
+                [index]: client.getSubscriptionNumber(),
+            };
+        }, {});
+    }
     getLastClient() {
         const lastClient = this.clientList[this.clientList.length - 1];
         if (!lastClient || lastClient.getSubscriptionNumber() >= this.maxSubscriptions) {
