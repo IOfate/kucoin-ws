@@ -83,18 +83,18 @@ export class Client {
       return;
     }
 
-    if (!this.ws.readyState) {
-      this.emitter.emit(
-        this.emitChannel.SOCKET_NOT_READY,
-        `socket not ready to subscribe ticker for: ${symbol}, retrying in ${this.retryTimeoutMs}ms`,
-      );
-      setTimeout(() => this.subscribeTicker(symbol), this.retryTimeoutMs).unref();
-
-      return;
-    }
-
     this.addSubscription(indexSubscription);
     const subFn = () => {
+      if (!this.ws.readyState) {
+        this.emitter.emit(
+          this.emitChannel.SOCKET_NOT_READY,
+          `socket not ready to subscribe ticker for: ${symbol}, retrying in ${this.retryTimeoutMs}ms`,
+        );
+        setTimeout(() => subFn(), this.retryTimeoutMs).unref();
+
+        return;
+      }
+
       this.queueProcessor.push(() => {
         const id = `sub-ticker-${Date.now()}`;
 
@@ -127,7 +127,7 @@ export class Client {
       });
     };
 
-    if (!this.socketOpen) {
+    if (!this.isSocketOpen()) {
       setTimeout(() => subFn(), this.retrySubscription).unref();
 
       return;
@@ -190,18 +190,18 @@ export class Client {
       return;
     }
 
-    if (!this.ws.readyState) {
-      this.emitter.emit(
-        this.emitChannel.SOCKET_NOT_READY,
-        `socket not ready to subscribe candle for: ${symbol} ${interval}, retrying in ${this.retryTimeoutMs}ms`,
-      );
-      setTimeout(() => this.subscribeCandle(symbol, interval), this.retryTimeoutMs).unref();
-
-      return;
-    }
-
     this.addSubscription(indexSubscription);
     const subFn = () => {
+      if (!this.ws.readyState) {
+        this.emitter.emit(
+          this.emitChannel.SOCKET_NOT_READY,
+          `socket not ready to subscribe candle for: ${symbol} ${interval}, retrying in ${this.retryTimeoutMs}ms`,
+        );
+        setTimeout(() => subFn(), this.retryTimeoutMs).unref();
+
+        return;
+      }
+
       this.queueProcessor.push(() => {
         const id = `sub-candle-${Date.now()}`;
 
@@ -237,7 +237,7 @@ export class Client {
       });
     };
 
-    if (!this.socketOpen) {
+    if (!this.isSocketOpen()) {
       setTimeout(() => subFn(), this.retrySubscription).unref();
 
       return;
@@ -305,7 +305,7 @@ export class Client {
   }
 
   isSocketOpen(): boolean {
-    return this.socketOpen;
+    return !!this.ws && this.socketOpen;
   }
 
   isSocketConnecting(): boolean {
