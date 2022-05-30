@@ -468,6 +468,7 @@ export class Client {
     });
 
     await this.waitOpenSocket();
+    this.startPing();
     const welcomeResult = await this.eventHandler.waitForEvent('welcome', this.connectId);
 
     if (!welcomeResult) {
@@ -479,7 +480,6 @@ export class Client {
 
     this.socketOpen = true;
     this.socketConnecting = false;
-    this.startPing();
   }
 
   private waitOpenSocket(): Promise<void> {
