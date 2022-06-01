@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.7.1](https://github.com/IOfate/kucoin-ws/compare/v1.7.0...v1.7.1) (2022-06-01)
+
+
+### Bug Fixes
+
+* **client:** start ping directly after the socket is opened ([49eba1c](https://github.com/IOfate/kucoin-ws/commit/49eba1c4203b672940abf56c7218d870d23a9031))
+* **core:** force reconnect when no pong detected ([86caded](https://github.com/IOfate/kucoin-ws/commit/86caded2133e6c1cb030f84b6a973c6510bbb94b))
+
 ## [1.7.0](https://github.com/IOfate/kucoin-ws/compare/v1.6.1...v1.7.0) (2022-05-22)
 
 
