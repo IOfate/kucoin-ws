@@ -20,6 +20,8 @@ export declare class Client {
     private publicToken;
     private subscriptions;
     private eventHandler;
+    private disconnectedTrigger;
+    private lastPongReceived;
     constructor(emitter: Emittery, globalEmitSubscription: () => void);
     connect(): Promise<void>;
     getPublicToken(): string;
@@ -28,10 +30,12 @@ export declare class Client {
     subscribeCandle(symbol: string, interval: string): void;
     unsubscribeCandle(symbol: string, interval: string): void;
     closeConnection(): void;
+    forceCloseConnection(): void;
     isSocketOpen(): boolean;
     isSocketConnecting(): boolean;
     getSubscriptionNumber(): number;
     getSubscriptions(): string[];
+    receivedPongRecently(): boolean;
     private removeSubscription;
     private addSubscription;
     private send;

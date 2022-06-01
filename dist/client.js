@@ -35,6 +35,7 @@ class Client {
         this.eventHandler = new event_handler_1.EventHandler(emitter);
     }
     async connect() {
+        this.lastPongReceived = Date.now();
         this.socketConnecting = true;
         const response = await got_1.default
             .post(this.publicBulletEndPoint, { headers: { host: this.rootApi } })
@@ -51,9 +52,11 @@ class Client {
         this.eventHandler.clearCandleCache();
         this.connectId = (0, crypto_1.randomBytes)(this.lengthConnectId).toString('hex');
         this.pingIntervalMs = pingInterval;
+        this.disconnectedTrigger = pingInterval * 2;
         this.publicToken = token;
         this.wsPath = `${endpoint}?token=${token}&connectId=${this.connectId}`;
         await this.openWebsocketConnection();
+        this.lastPongReceived = Date.now();
         if (this.subscriptions.length) {
             this.restartPreviousSubscriptions();
         }
@@ -235,6 +238,12 @@ class Client {
         this.askingClose = true;
         this.ws.close();
     }
+    forceCloseConnection() {
+        if (!this.isSocketOpen()) {
+            return;
+        }
+        this.ws.close();
+    }
     isSocketOpen() {
         return !!this.ws && this.socketOpen;
     }
@@ -246,6 +255,17 @@ class Client {
     }
     getSubscriptions() {
         return this.subscriptions;
+    }
+    receivedPongRecently() {
+        if (!this.lastPongReceived) {
+            return false;
+        }
+        if (this.socketConnecting) {
+            return true;
+        }
+        const now = Date.now();
+        const timeDiff = now - this.lastPongReceived;
+        return timeDiff < this.disconnectedTrigger;
     }
     removeSubscription(index) {
         if (!this.subscriptions.includes(index)) {
@@ -295,8 +315,15 @@ class Client {
     }
     sendPing() {
         this.requireSocketToBeOpen();
+        const pingId = `ping-${Date.now()}`;
+        this.eventHandler.waitForEvent('pong', pingId, (result) => {
+            if (result) {
+                this.lastPongReceived = Date.now();
+                return;
+            }
+        });
         this.send(JSON.stringify({
-            id: Date.now(),
+            id: pingId,
             type: 'ping',
         }));
     }
@@ -337,6 +364,7 @@ class Client {
             this.emitter.emit(this.emitChannel.ERROR, error);
         });
         await this.waitOpenSocket();
+        this.startPing();
         const welcomeResult = await this.eventHandler.waitForEvent('welcome', this.connectId);
         if (!welcomeResult) {
             const welcomeError = new Error('No welcome message from KuCoin received!');
@@ -345,7 +373,6 @@ class Client {
         }
         this.socketOpen = true;
         this.socketConnecting = false;
-        this.startPing();
     }
     waitOpenSocket() {
         return new Promise((resolve) => {

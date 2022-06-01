@@ -14,6 +14,8 @@ class KuCoinWs extends emittery_1.default {
         this.clientList = [];
         this.maxSubscriptions = 98;
         this.subscriptionsEvent = 'subscriptions';
+        this.intervalCheckConnection = 32000;
+        this.launchTimerDisconnected();
     }
     connect() {
         this.getLastClient();
@@ -75,10 +77,16 @@ class KuCoinWs extends emittery_1.default {
             };
         }, {});
     }
+    launchTimerDisconnected() {
+        clearInterval(this.timerDisconnectedClient);
+        this.timerDisconnectedClient = setInterval(() => this.checkDisconnectedClients(), this.intervalCheckConnection);
+        this.timerDisconnectedClient.unref();
+    }
     getLastClient() {
         const lastClient = this.clientList[this.clientList.length - 1];
         if (!lastClient || lastClient.getSubscriptionNumber() >= this.maxSubscriptions) {
             const newClient = new client_1.Client(this, () => this.emitSubscriptions());
+            this.launchTimerDisconnected();
             this.clientList.push(newClient);
             newClient.connect();
             return newClient;
@@ -88,6 +96,11 @@ class KuCoinWs extends emittery_1.default {
     emitSubscriptions() {
         const allSubscriptions = this.clientList.reduce((acc, client) => acc.concat(client.getSubscriptions()), []);
         this.emit(this.subscriptionsEvent, allSubscriptions);
+    }
+    checkDisconnectedClients() {
+        this.clientList
+            .filter((client) => !client.receivedPongRecently())
+            .forEach((client) => client.forceCloseConnection());
     }
 }
 exports.KuCoinWs = KuCoinWs;
