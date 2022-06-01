@@ -8,9 +8,13 @@ export class KuCoinWs extends Emittery {
   private readonly clientList: Client[] = [];
   private readonly maxSubscriptions = 98;
   private readonly subscriptionsEvent = 'subscriptions';
+  private readonly intervalCheckConnection = 32000;
+  private timerDisconnectedClient: NodeJS.Timer;
 
   constructor() {
     super();
+
+    this.launchTimerDisconnected();
   }
 
   connect(): Promise<void> {
@@ -111,13 +115,24 @@ export class KuCoinWs extends Emittery {
     }, {});
   }
 
+  private launchTimerDisconnected(): void {
+    clearInterval(this.timerDisconnectedClient);
+    this.timerDisconnectedClient = setInterval(
+      () => this.checkDisconnectedClients(),
+      this.intervalCheckConnection,
+    );
+    this.timerDisconnectedClient.unref();
+  }
+
   private getLastClient(): Client {
     const lastClient = this.clientList[this.clientList.length - 1];
 
     if (!lastClient || lastClient.getSubscriptionNumber() >= this.maxSubscriptions) {
       const newClient = new Client(this, () => this.emitSubscriptions());
 
+      this.launchTimerDisconnected();
       this.clientList.push(newClient);
+
       newClient.connect();
 
       return newClient;
@@ -133,5 +148,11 @@ export class KuCoinWs extends Emittery {
     );
 
     this.emit(this.subscriptionsEvent, allSubscriptions);
+  }
+
+  private checkDisconnectedClients(): void {
+    this.clientList
+      .filter((client: Client) => !client.receivedPongRecently())
+      .forEach((client: Client) => client.forceCloseConnection());
   }
 }

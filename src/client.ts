@@ -37,6 +37,8 @@ export class Client {
   private publicToken: string;
   private subscriptions: string[] = [];
   private eventHandler: EventHandler;
+  private disconnectedTrigger: number;
+  private lastPongReceived: number | undefined;
 
   constructor(
     private readonly emitter: Emittery,
@@ -48,6 +50,7 @@ export class Client {
   }
 
   async connect(): Promise<void> {
+    this.lastPongReceived = Date.now();
     this.socketConnecting = true;
     const response = await got
       .post(this.publicBulletEndPoint, { headers: { host: this.rootApi } })
@@ -68,10 +71,13 @@ export class Client {
     this.eventHandler.clearCandleCache();
     this.connectId = randomBytes(this.lengthConnectId).toString('hex');
     this.pingIntervalMs = pingInterval;
+    this.disconnectedTrigger = pingInterval * 2;
     this.publicToken = token;
     this.wsPath = `${endpoint}?token=${token}&connectId=${this.connectId}`;
 
     await this.openWebsocketConnection();
+
+    this.lastPongReceived = Date.now();
 
     if (this.subscriptions.length) {
       this.restartPreviousSubscriptions();
@@ -330,6 +336,14 @@ export class Client {
     this.ws.close();
   }
 
+  forceCloseConnection(): void {
+    if (!this.isSocketOpen()) {
+      return;
+    }
+
+    this.ws.close();
+  }
+
   isSocketOpen(): boolean {
     return !!this.ws && this.socketOpen;
   }
@@ -344,6 +358,21 @@ export class Client {
 
   getSubscriptions(): string[] {
     return this.subscriptions;
+  }
+
+  receivedPongRecently(): boolean {
+    if (!this.lastPongReceived) {
+      return false;
+    }
+
+    if (this.socketConnecting) {
+      return true;
+    }
+
+    const now = Date.now();
+    const timeDiff = now - this.lastPongReceived;
+
+    return timeDiff < this.disconnectedTrigger;
   }
 
   private removeSubscription(index: string): void {
@@ -411,9 +440,20 @@ export class Client {
 
   private sendPing() {
     this.requireSocketToBeOpen();
+
+    const pingId = `ping-${Date.now()}`;
+
+    this.eventHandler.waitForEvent('pong', pingId, (result: boolean) => {
+      if (result) {
+        this.lastPongReceived = Date.now();
+
+        return;
+      }
+    });
+
     this.send(
       JSON.stringify({
-        id: Date.now(),
+        id: pingId,
         type: 'ping',
       }),
     );
