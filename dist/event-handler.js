@@ -9,8 +9,9 @@ class EventHandler {
         this.emitter = emitter;
         this.maxWaiting = 2000;
         this.mapResolveWaitEvent = {};
-        this.currentCandles = {};
+        this.lastCandles = {};
         this.mapResolveWaitEvent = {};
+        this.lastTickers = {};
     }
     waitForEvent(event, id, callback = util_1.noop) {
         const eventKey = `${event}-${id}`;
@@ -53,10 +54,20 @@ class EventHandler {
         }
     }
     deleteCandleCache(id) {
-        delete this.currentCandles[id];
+        delete this.lastCandles[id];
     }
-    clearCandleCache() {
-        this.currentCandles = {};
+    deleteTickerCache(id) {
+        delete this.lastTickers[id];
+    }
+    clearCache() {
+        this.lastCandles = {};
+        this.lastTickers = {};
+    }
+    getLastTickers() {
+        return this.lastTickers;
+    }
+    getLastCandles() {
+        return this.lastCandles;
     }
     processRawTicker(symbol, rawTicker) {
         const ticker = {
@@ -71,6 +82,7 @@ class EventHandler {
             last: Number(rawTicker.price),
             close: Number(rawTicker.price),
         };
+        this.lastTickers[symbol] = ticker;
         this.emitter.emit(`ticker-${symbol}`, ticker);
     }
     reverseInterval(kuCoinInterval) {
@@ -92,21 +104,25 @@ class EventHandler {
             low: Number(rawLowPrice),
             open: Number(rawOpenPrice),
             volume: Number(rawVolume),
+            timestamp: Date.now(),
         };
         return candle;
     }
     processCandleUpdate(symbol, interval, rawCandle) {
-        const keyCandle = `candle-${symbol}-${interval}`;
+        const keyCandle = this.formatCandleKey(symbol, interval);
         const candle = this.getCandle(symbol, rawCandle);
-        this.currentCandles[keyCandle] = candle;
+        this.lastCandles[keyCandle] = candle;
     }
     processCandleAdd(symbol, interval, rawCandle) {
-        const keyCandle = `candle-${symbol}-${interval}`;
+        const keyCandle = this.formatCandleKey(symbol, interval);
         const candle = this.getCandle(symbol, rawCandle);
-        if (this.currentCandles[keyCandle]) {
-            this.emitter.emit(keyCandle, this.currentCandles[keyCandle]);
+        if (this.lastCandles[keyCandle]) {
+            this.emitter.emit(keyCandle, this.lastCandles[keyCandle]);
         }
-        this.currentCandles[keyCandle] = candle;
+        this.lastCandles[keyCandle] = candle;
+    }
+    formatCandleKey(symbol, interval) {
+        return `candle-${symbol.toLowerCase()}-${interval}`;
     }
 }
 exports.EventHandler = EventHandler;

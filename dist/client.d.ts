@@ -8,6 +8,8 @@ export declare class Client {
     private readonly lengthConnectId;
     private readonly retryTimeoutMs;
     private readonly retrySubscription;
+    private readonly triggerTickerDisconnected;
+    private readonly triggerNbCandle;
     private readonly emitChannel;
     private ws;
     private socketOpen;
@@ -36,6 +38,9 @@ export declare class Client {
     getSubscriptionNumber(): number;
     getSubscriptions(): string[];
     receivedPongRecently(): boolean;
+    shouldReconnectDeadSockets(): void;
+    private shouldReconnectTickers;
+    private shouldReconnectCandles;
     private removeSubscription;
     private addSubscription;
     private send;

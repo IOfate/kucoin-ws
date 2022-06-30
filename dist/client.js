@@ -8,6 +8,7 @@ const crypto_1 = require("crypto");
 const ws_1 = __importDefault(require("ws"));
 const got_1 = __importDefault(require("got"));
 const queue_1 = __importDefault(require("queue"));
+const parse_duration_1 = __importDefault(require("parse-duration"));
 /** Root */
 const util_1 = require("./util");
 const const_1 = require("./const");
@@ -20,8 +21,10 @@ class Client {
         this.rootApi = 'openapi-v2.kucoin.com';
         this.publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
         this.lengthConnectId = 24;
-        this.retryTimeoutMs = 5000;
-        this.retrySubscription = 2000;
+        this.retryTimeoutMs = (0, parse_duration_1.default)('5s');
+        this.retrySubscription = (0, parse_duration_1.default)('2s');
+        this.triggerTickerDisconnected = (0, parse_duration_1.default)('10s');
+        this.triggerNbCandle = 2;
         this.emitChannel = {
             ERROR: 'error',
             RECONNECT: 'reconnect',
@@ -49,7 +52,7 @@ class Client {
         const { token, instanceServers } = response.data;
         const { endpoint, pingInterval } = instanceServers[0];
         this.askingClose = false;
-        this.eventHandler.clearCandleCache();
+        this.eventHandler.clearCache();
         this.connectId = (0, crypto_1.randomBytes)(this.lengthConnectId).toString('hex');
         this.pingIntervalMs = pingInterval;
         this.disconnectedTrigger = pingInterval * 2;
@@ -124,6 +127,7 @@ class Client {
             const id = `unsub-ticker-${Date.now()}`;
             this.eventHandler.waitForEvent('ack', id, (result) => {
                 if (result) {
+                    this.eventHandler.deleteTickerCache(symbol);
                     return;
                 }
                 this.addSubscription(indexSubscription);
@@ -266,6 +270,38 @@ class Client {
         const now = Date.now();
         const timeDiff = now - this.lastPongReceived;
         return timeDiff < this.disconnectedTrigger;
+    }
+    shouldReconnectDeadSockets() {
+        const now = Date.now();
+        this.shouldReconnectTickers(now);
+        this.shouldReconnectCandles(now);
+    }
+    shouldReconnectTickers(now) {
+        const lastTickers = this.eventHandler.getLastTickers();
+        Object.keys(lastTickers)
+            .filter((pair) => {
+            const timeDiff = now - lastTickers[pair].timestamp;
+            return timeDiff >= this.triggerTickerDisconnected;
+        })
+            .forEach((pair) => {
+            this.unsubscribeTicker(pair);
+            this.subscribeTicker(pair);
+        });
+    }
+    shouldReconnectCandles(now) {
+        const lastCandles = this.eventHandler.getLastCandles();
+        Object.keys(lastCandles)
+            .filter((key) => {
+            const [, , interval] = key.split('-');
+            const triggerMs = (0, parse_duration_1.default)(interval) * this.triggerNbCandle;
+            const timeDiff = now - lastCandles[key].timestamp;
+            return timeDiff >= triggerMs;
+        })
+            .forEach((key) => {
+            const [, symbol, interval] = key.split('-');
+            this.unsubscribeCandle(symbol, interval);
+            this.subscribeCandle(symbol, interval);
+        });
     }
     removeSubscription(index) {
         if (!this.subscriptions.includes(index)) {

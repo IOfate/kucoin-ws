@@ -98,9 +98,13 @@ class KuCoinWs extends emittery_1.default {
         this.emit(this.subscriptionsEvent, allSubscriptions);
     }
     checkDisconnectedClients() {
-        this.clientList
-            .filter((client) => !client.receivedPongRecently())
-            .forEach((client) => client.forceCloseConnection());
+        for (const client of this.clientList) {
+            if (!client.receivedPongRecently()) {
+                client.forceCloseConnection();
+                continue;
+            }
+            client.shouldReconnectDeadSockets();
+        }
     }
 }
 exports.KuCoinWs = KuCoinWs;
