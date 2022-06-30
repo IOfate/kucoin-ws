@@ -149,14 +149,14 @@ export class EventHandler {
   }
 
   private processCandleUpdate(symbol: string, interval: string, rawCandle: string[]) {
-    const keyCandle = `candle-${symbol}-${interval}`;
+    const keyCandle = this.formatCandleKey(symbol, interval);
     const candle = this.getCandle(symbol, rawCandle);
 
     this.lastCandles[keyCandle] = candle;
   }
 
   private processCandleAdd(symbol: string, interval: string, rawCandle: string[]) {
-    const keyCandle = `candle-${symbol}-${interval}`;
+    const keyCandle = this.formatCandleKey(symbol, interval);
     const candle = this.getCandle(symbol, rawCandle);
 
     if (this.lastCandles[keyCandle]) {
@@ -164,5 +164,9 @@ export class EventHandler {
     }
 
     this.lastCandles[keyCandle] = candle;
+  }
+
+  private formatCandleKey(symbol: string, interval: string): string {
+    return `candle-${symbol.toLowerCase()}-${interval}`;
   }
 }

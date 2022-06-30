@@ -1,3 +1,5 @@
+import parseDuration from 'parse-duration';
+
 import { KuCoinWs } from '../src/index';
 import { delay } from '../src/util';
 
@@ -26,9 +28,14 @@ const main = async () => {
   client.subscribeCandle('BTC/USDT', '1m');
   client.subscribeCandle('ETH/USDT', '1m');
 
-  await delay(2000);
+  await delay(parseDuration('2s'));
 
   client.unsubscribeTicker('BTC/USDT');
+
+  setTimeout(() => {
+    client.unsubscribeCandle('BTC/USDT', '1m');
+  }, parseDuration('2m'));
+
   unSubFn();
   console.log(client.getMapClientSubscriptionNumber());
 };
