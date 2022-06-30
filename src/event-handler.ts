@@ -12,12 +12,14 @@ import { Candle } from './models/candle';
 
 export class EventHandler {
   private readonly maxWaiting = 2000;
-  private currentCandles: { [candleKey: string]: Candle };
+  private lastCandles: { [candleKey: string]: Candle };
+  private lastTickers: { [pair: string]: Ticker };
   private mapResolveWaitEvent: { [eventKey: string]: () => void } = {};
 
   constructor(private readonly emitter: Emittery) {
-    this.currentCandles = {};
+    this.lastCandles = {};
     this.mapResolveWaitEvent = {};
+    this.lastTickers = {};
   }
 
   waitForEvent(
@@ -79,11 +81,24 @@ export class EventHandler {
   }
 
   deleteCandleCache(id: string): void {
-    delete this.currentCandles[id];
+    delete this.lastCandles[id];
   }
 
-  clearCandleCache(): void {
-    this.currentCandles = {};
+  deleteTickerCache(id: string): void {
+    delete this.lastTickers[id];
+  }
+
+  clearCache(): void {
+    this.lastCandles = {};
+    this.lastTickers = {};
+  }
+
+  getLastTickers(): { [pair: string]: Ticker } {
+    return this.lastTickers;
+  }
+
+  getLastCandles(): { [candleKey: string]: Candle } {
+    return this.lastCandles;
   }
 
   private processRawTicker(symbol: string, rawTicker: RawTicker) {
@@ -100,6 +115,7 @@ export class EventHandler {
       close: Number(rawTicker.price),
     };
 
+    this.lastTickers[symbol] = ticker;
     this.emitter.emit(`ticker-${symbol}`, ticker);
   }
 
@@ -126,6 +142,7 @@ export class EventHandler {
       low: Number(rawLowPrice),
       open: Number(rawOpenPrice),
       volume: Number(rawVolume),
+      timestamp: Date.now(),
     };
 
     return candle;
@@ -135,17 +152,17 @@ export class EventHandler {
     const keyCandle = `candle-${symbol}-${interval}`;
     const candle = this.getCandle(symbol, rawCandle);
 
-    this.currentCandles[keyCandle] = candle;
+    this.lastCandles[keyCandle] = candle;
   }
 
   private processCandleAdd(symbol: string, interval: string, rawCandle: string[]) {
     const keyCandle = `candle-${symbol}-${interval}`;
     const candle = this.getCandle(symbol, rawCandle);
 
-    if (this.currentCandles[keyCandle]) {
-      this.emitter.emit(keyCandle, this.currentCandles[keyCandle]);
+    if (this.lastCandles[keyCandle]) {
+      this.emitter.emit(keyCandle, this.lastCandles[keyCandle]);
     }
 
-    this.currentCandles[keyCandle] = candle;
+    this.lastCandles[keyCandle] = candle;
   }
 }

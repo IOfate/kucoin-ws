@@ -32,6 +32,7 @@
   "dependencies": {
     "emittery": "^0.11.0",
     "got": "^11.8.5",
+    "parse-duration": "^1.0.2",
     "queue": "^6.0.2",
     "ws": "^8.6.0"
   },

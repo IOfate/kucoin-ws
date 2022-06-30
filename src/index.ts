@@ -151,8 +151,14 @@ export class KuCoinWs extends Emittery {
   }
 
   private checkDisconnectedClients(): void {
-    this.clientList
-      .filter((client: Client) => !client.receivedPongRecently())
-      .forEach((client: Client) => client.forceCloseConnection());
+    for (const client of this.clientList) {
+      if (!client.receivedPongRecently()) {
+        client.forceCloseConnection();
+
+        continue;
+      }
+
+      client.shouldReconnectDeadSockets();
+    }
   }
 }
