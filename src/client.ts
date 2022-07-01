@@ -20,7 +20,7 @@ export class Client {
   private readonly lengthConnectId = 24;
   private readonly retryTimeoutMs = parseDuration('5s');
   private readonly retrySubscription = parseDuration('2s');
-  private readonly triggerTickerDisconnected = parseDuration('10s');
+  private readonly triggerTickerDisconnected = parseDuration('6m');
   private readonly triggerNbCandle = 2;
   private readonly emitChannel = {
     ERROR: 'error',

@@ -1,4 +1,5 @@
 import Emittery from 'emittery';
+import parseDuration from 'parse-duration';
 
 /** Root */
 import { Client } from './client';
@@ -8,7 +9,7 @@ export class KuCoinWs extends Emittery {
   private readonly clientList: Client[] = [];
   private readonly maxSubscriptions = 98;
   private readonly subscriptionsEvent = 'subscriptions';
-  private readonly intervalCheckConnection = 32000;
+  private readonly intervalCheckConnection = parseDuration('32s');
   private timerDisconnectedClient: NodeJS.Timer;
 
   constructor() {
