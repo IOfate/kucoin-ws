@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.KuCoinWs = void 0;
 const emittery_1 = __importDefault(require("emittery"));
+const parse_duration_1 = __importDefault(require("parse-duration"));
 /** Root */
 const client_1 = require("./client");
 const util_1 = require("./util");
@@ -14,7 +15,7 @@ class KuCoinWs extends emittery_1.default {
         this.clientList = [];
         this.maxSubscriptions = 98;
         this.subscriptionsEvent = 'subscriptions';
-        this.intervalCheckConnection = 32000;
+        this.intervalCheckConnection = (0, parse_duration_1.default)('32s');
         this.launchTimerDisconnected();
     }
     connect() {

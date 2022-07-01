@@ -23,7 +23,7 @@ class Client {
         this.lengthConnectId = 24;
         this.retryTimeoutMs = (0, parse_duration_1.default)('5s');
         this.retrySubscription = (0, parse_duration_1.default)('2s');
-        this.triggerTickerDisconnected = (0, parse_duration_1.default)('10s');
+        this.triggerTickerDisconnected = (0, parse_duration_1.default)('6m');
         this.triggerNbCandle = 2;
         this.emitChannel = {
             ERROR: 'error',
