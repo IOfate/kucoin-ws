@@ -167,6 +167,6 @@ export class EventHandler {
   }
 
   private formatCandleKey(symbol: string, interval: string): string {
-    return `candle-${symbol.toLowerCase()}-${interval}`;
+    return `candle-${symbol}-${interval}`;
   }
 }
