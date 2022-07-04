@@ -122,7 +122,7 @@ class EventHandler {
         this.lastCandles[keyCandle] = candle;
     }
     formatCandleKey(symbol, interval) {
-        return `candle-${symbol.toLowerCase()}-${interval}`;
+        return `candle-${symbol}-${interval}`;
     }
 }
 exports.EventHandler = EventHandler;
