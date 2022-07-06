@@ -10,7 +10,7 @@ import { PublicToken } from './models/public-token.model';
 
 /** Root */
 import { delay, getCandleSubscriptionKey, getTickerSubscriptionKey, noop } from './util';
-import { mapCandleInterval } from './const';
+import { mapCandleInterval, subTickerStartKey } from './const';
 import { EventHandler } from './event-handler';
 
 export class Client {
@@ -388,11 +388,18 @@ export class Client {
   }
 
   private shouldReconnectTickers(now: number) {
-    const lastTickers = this.eventHandler.getLastTickers();
+    const lastEmittedTickers = this.eventHandler.getLastTickers();
+    const allTickers = this.subscriptions
+      .filter((subStr: string) => subStr.startsWith(subTickerStartKey))
+      .map((subStr: string) => subStr.split(subTickerStartKey).pop().toUpperCase());
 
-    Object.keys(lastTickers)
+    allTickers
       .filter((pair: string) => {
-        const timeDiff = now - lastTickers[pair].timestamp;
+        if (!lastEmittedTickers[pair]) {
+          return true;
+        }
+
+        const timeDiff = now - lastEmittedTickers[pair].timestamp;
 
         return timeDiff >= this.triggerTickerDisconnected;
       })
