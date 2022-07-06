@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.7.2](https://github.com/IOfate/kucoin-ws/compare/v1.7.1...v1.7.2) (2022-07-06)
+
+
+### Bug Fixes
+
+* **core:** clear cached candles on unsubscribe ([10eef58](https://github.com/IOfate/kucoin-ws/commit/10eef5868b5b39b4603b615176ef1fe36654d786))
+* **core:** re subscribe dead sockets ([e14ba59](https://github.com/IOfate/kucoin-ws/commit/e14ba593b2216df49e686897e88a6568c225c0ff))
+* **event-handler:** do not lowcase symbol for candles ([5cac539](https://github.com/IOfate/kucoin-ws/commit/5cac539060d817f9d1f1f2585ed520094bb17913))
+* **got:** update to latest security release ([74a8ab4](https://github.com/IOfate/kucoin-ws/commit/74a8ab4f1ccf57941b8b6ac3d4d18979e4a5ca6a))
+* **ticker:** increase trigger ticker disconnected for low volume pairs ([692c461](https://github.com/IOfate/kucoin-ws/commit/692c46131228d4471c0a92d0e7adef4b08bdc727))
+
 ### [1.7.1](https://github.com/IOfate/kucoin-ws/compare/v1.7.0...v1.7.1) (2022-06-01)
 
 
