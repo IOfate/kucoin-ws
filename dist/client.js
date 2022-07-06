@@ -277,10 +277,16 @@ class Client {
         this.shouldReconnectCandles(now);
     }
     shouldReconnectTickers(now) {
-        const lastTickers = this.eventHandler.getLastTickers();
-        Object.keys(lastTickers)
+        const lastEmittedTickers = this.eventHandler.getLastTickers();
+        const allTickers = this.subscriptions
+            .filter((subStr) => subStr.startsWith(const_1.subTickerStartKey))
+            .map((subStr) => subStr.split(const_1.subTickerStartKey).pop().toUpperCase());
+        allTickers
             .filter((pair) => {
-            const timeDiff = now - lastTickers[pair].timestamp;
+            if (!lastEmittedTickers[pair]) {
+                return true;
+            }
+            const timeDiff = now - lastEmittedTickers[pair].timestamp;
             return timeDiff >= this.triggerTickerDisconnected;
         })
             .forEach((pair) => {

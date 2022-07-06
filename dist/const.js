@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mapCandleInterval = void 0;
+exports.subTickerStartKey = exports.mapCandleInterval = void 0;
 exports.mapCandleInterval = {
     '1m': '1min',
     '3m': '3min',
@@ -15,4 +15,5 @@ exports.mapCandleInterval = {
     '1d': '1day',
     '1w': '1week',
 };
+exports.subTickerStartKey = 'ticker-';
 //# sourceMappingURL=const.js.map
