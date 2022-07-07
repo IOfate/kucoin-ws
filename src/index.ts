@@ -3,7 +3,9 @@ import parseDuration from 'parse-duration';
 
 /** Root */
 import { Client } from './client';
-import { getCandleSubscriptionKey, getTickerSubscriptionKey } from './util';
+
+/** Models */
+import { Subscription } from './models/subscription.model';
 
 export class KuCoinWs extends Emittery {
   private readonly clientList: Client[] = [];
@@ -26,7 +28,7 @@ export class KuCoinWs extends Emittery {
 
   subscribeTicker(symbol: string): void {
     const alreadySubscribed = this.clientList.some((client: Client) =>
-      client.getSubscriptions().includes(getTickerSubscriptionKey(symbol)),
+      client.hasTickerSubscription(symbol),
     );
 
     if (alreadySubscribed) {
@@ -41,17 +43,11 @@ export class KuCoinWs extends Emittery {
   }
 
   unsubscribeTicker(symbol: string): void {
-    const alreadySubscribed = this.clientList.some((client: Client) =>
-      client.getSubscriptions().includes(getTickerSubscriptionKey(symbol)),
-    );
+    const client = this.clientList.find((client: Client) => client.hasTickerSubscription(symbol));
 
-    if (!alreadySubscribed) {
+    if (!client) {
       return;
     }
-
-    const client = this.clientList.find((client: Client) =>
-      client.getSubscriptions().includes(getTickerSubscriptionKey(symbol)),
-    );
 
     client.unsubscribeTicker(symbol);
   }
@@ -62,7 +58,7 @@ export class KuCoinWs extends Emittery {
 
   subscribeCandle(symbol: string, interval: string): void {
     const alreadySubscribed = this.clientList.some((client: Client) =>
-      client.getSubscriptions().includes(getCandleSubscriptionKey(symbol, interval)),
+      client.hasCandleSubscription(symbol, interval),
     );
 
     if (alreadySubscribed) {
@@ -73,17 +69,13 @@ export class KuCoinWs extends Emittery {
   }
 
   unsubscribeCandle(symbol: string, interval: string): void {
-    const alreadySubscribed = this.clientList.some((client: Client) =>
-      client.getSubscriptions().includes(getCandleSubscriptionKey(symbol, interval)),
+    const client = this.clientList.find((client: Client) =>
+      client.hasCandleSubscription(symbol, interval),
     );
 
-    if (!alreadySubscribed) {
+    if (!client) {
       return;
     }
-
-    const client = this.clientList.find((client: Client) =>
-      client.getSubscriptions().includes(getCandleSubscriptionKey(symbol, interval)),
-    );
 
     client.unsubscribeCandle(symbol, interval);
   }
@@ -144,7 +136,7 @@ export class KuCoinWs extends Emittery {
 
   private emitSubscriptions(): void {
     const allSubscriptions = this.clientList.reduce(
-      (acc: string[], client: Client) => acc.concat(client.getSubscriptions()),
+      (acc: Subscription[], client: Client) => acc.concat(client.getSubscriptions()),
       [],
     );
 

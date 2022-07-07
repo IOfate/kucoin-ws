@@ -2,7 +2,7 @@ import Emittery from 'emittery';
 
 /** Root */
 import { mapCandleInterval } from './const';
-import { noop } from './util';
+import { getCandleSubscriptionKey, noop } from './util';
 
 /** Models */
 import { MessageData } from './models/message-data.model';
@@ -149,14 +149,14 @@ export class EventHandler {
   }
 
   private processCandleUpdate(symbol: string, interval: string, rawCandle: string[]) {
-    const keyCandle = this.formatCandleKey(symbol, interval);
+    const keyCandle = getCandleSubscriptionKey(symbol, interval);
     const candle = this.getCandle(symbol, rawCandle);
 
     this.lastCandles[keyCandle] = candle;
   }
 
   private processCandleAdd(symbol: string, interval: string, rawCandle: string[]) {
-    const keyCandle = this.formatCandleKey(symbol, interval);
+    const keyCandle = getCandleSubscriptionKey(symbol, interval);
     const candle = this.getCandle(symbol, rawCandle);
 
     if (this.lastCandles[keyCandle]) {
@@ -164,9 +164,5 @@ export class EventHandler {
     }
 
     this.lastCandles[keyCandle] = candle;
-  }
-
-  private formatCandleKey(symbol: string, interval: string): string {
-    return `candle-${symbol}-${interval}`;
   }
 }

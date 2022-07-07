@@ -7,10 +7,13 @@ import parseDuration from 'parse-duration';
 
 /** Models */
 import { PublicToken } from './models/public-token.model';
+import { Subscription } from './models/subscription.model';
+import { TickerSubscription } from './models/ticker-subscription.model';
+import { CandleSubscription } from './models/candle-subscription.model';
 
 /** Root */
-import { delay, getCandleSubscriptionKey, getTickerSubscriptionKey, noop } from './util';
-import { mapCandleInterval, subTickerStartKey } from './const';
+import { delay, getCandleSubscriptionKey, noop } from './util';
+import { mapCandleInterval } from './const';
 import { EventHandler } from './event-handler';
 
 export class Client {
@@ -38,7 +41,7 @@ export class Client {
   private pingTimer: NodeJS.Timer;
   private wsPath: string;
   private publicToken: string;
-  private subscriptions: string[] = [];
+  private subscriptions: Subscription[] = [];
   private eventHandler: EventHandler;
   private disconnectedTrigger: number;
   private lastPongReceived: number | undefined;
@@ -93,13 +96,12 @@ export class Client {
 
   subscribeTicker(symbol: string): void {
     const formatSymbol = symbol.replace('/', '-');
-    const indexSubscription = getTickerSubscriptionKey(symbol);
 
-    if (this.subscriptions.includes(indexSubscription)) {
+    if (this.hasTickerSubscription(symbol)) {
       return;
     }
 
-    this.addSubscription(indexSubscription);
+    this.addTickerSubscription(symbol);
     const subFn = () => {
       if (!this.ws.readyState) {
         this.emitter.emit(
@@ -119,7 +121,7 @@ export class Client {
             return;
           }
 
-          this.removeSubscription(indexSubscription);
+          this.removeTickerSubscription(symbol);
           setTimeout(() => {
             this.emitter.emit(
               this.emitChannel.RETRY_SUBSCRIPTION,
@@ -147,7 +149,8 @@ export class Client {
                 );
                 this.subscribeTicker(symbol);
               }, this.retrySubscription).unref();
-              return this.removeSubscription(indexSubscription);
+
+              return this.removeTickerSubscription(symbol);
             }
           },
         );
@@ -166,9 +169,8 @@ export class Client {
   unsubscribeTicker(symbol: string): void {
     this.requireSocketToBeOpen();
     const formatSymbol = symbol.replace('/', '-');
-    const indexSubscription = getTickerSubscriptionKey(symbol);
 
-    if (!this.subscriptions.includes(indexSubscription)) {
+    if (!this.hasTickerSubscription(symbol)) {
       return;
     }
 
@@ -182,7 +184,7 @@ export class Client {
           return;
         }
 
-        this.addSubscription(indexSubscription);
+        this.addTickerSubscription(symbol);
       });
 
       this.send(
@@ -197,12 +199,12 @@ export class Client {
           if (error) {
             this.emitter.emit(this.emitChannel.ERROR, error);
 
-            return this.addSubscription(indexSubscription);
+            return this.addTickerSubscription(symbol);
           }
         },
       );
     });
-    this.removeSubscription(indexSubscription);
+    this.removeTickerSubscription(symbol);
   }
 
   subscribeCandle(symbol: string, interval: string): void {
@@ -213,13 +215,11 @@ export class Client {
       throw new TypeError(`Wrong format waiting for: ${Object.keys(mapCandleInterval).join(', ')}`);
     }
 
-    const indexSubscription = getCandleSubscriptionKey(symbol, interval);
-
-    if (this.subscriptions.includes(indexSubscription)) {
+    if (this.hasCandleSubscription(symbol, interval)) {
       return;
     }
 
-    this.addSubscription(indexSubscription);
+    this.addCandleSubscription(symbol, interval);
     const subFn = () => {
       if (!this.ws.readyState) {
         this.emitter.emit(
@@ -239,7 +239,7 @@ export class Client {
             return;
           }
 
-          this.removeSubscription(indexSubscription);
+          this.removeCandleSubscription(symbol, interval);
           setTimeout(() => {
             this.emitter.emit(
               this.emitChannel.RETRY_SUBSCRIPTION,
@@ -267,7 +267,7 @@ export class Client {
                 );
                 this.subscribeCandle(symbol, interval);
               }, this.retrySubscription).unref();
-              return this.removeSubscription(indexSubscription);
+              return this.removeCandleSubscription(symbol, interval);
             }
           },
         );
@@ -292,23 +292,22 @@ export class Client {
       throw new TypeError(`Wrong format waiting for: ${Object.keys(mapCandleInterval).join(', ')}`);
     }
 
-    const indexSubscription = getCandleSubscriptionKey(symbol, interval);
-
-    if (!this.subscriptions.includes(indexSubscription)) {
+    if (!this.hasCandleSubscription(symbol, interval)) {
       return;
     }
 
+    this.removeCandleSubscription(symbol, interval);
     this.queueProcessor.push(() => {
       const id = `unsub-candle-${Date.now()}`;
 
       this.eventHandler.waitForEvent('ack', id, (result: boolean) => {
         if (result) {
-          this.eventHandler.deleteCandleCache(indexSubscription);
+          this.eventHandler.deleteCandleCache(getCandleSubscriptionKey(symbol, interval));
 
           return;
         }
 
-        this.addSubscription(indexSubscription);
+        this.addCandleSubscription(symbol, interval);
       });
 
       this.send(
@@ -323,13 +322,11 @@ export class Client {
           if (error) {
             this.emitter.emit(this.emitChannel.ERROR, error);
 
-            return this.addSubscription(indexSubscription);
+            return this.addCandleSubscription(symbol, interval);
           }
         },
       );
     });
-
-    this.removeSubscription(indexSubscription);
   }
 
   closeConnection(): void {
@@ -361,7 +358,7 @@ export class Client {
     return this.subscriptions.length;
   }
 
-  getSubscriptions(): string[] {
+  getSubscriptions(): Subscription[] {
     return this.subscriptions;
   }
 
@@ -387,11 +384,23 @@ export class Client {
     this.shouldReconnectCandles(now);
   }
 
+  hasTickerSubscription(symbol: string): boolean {
+    return this.subscriptions
+      .filter((fSub: Subscription) => fSub.type === 'ticker')
+      .some((sSub: TickerSubscription) => sSub.symbol === symbol);
+  }
+
+  hasCandleSubscription(symbol: string, interval: string): boolean {
+    return this.subscriptions
+      .filter((fSub: Subscription) => fSub.type === 'candle')
+      .some((sSub: CandleSubscription) => sSub.symbol === symbol && sSub.interval === interval);
+  }
+
   private shouldReconnectTickers(now: number) {
     const lastEmittedTickers = this.eventHandler.getLastTickers();
     const allTickers = this.subscriptions
-      .filter((subStr: string) => subStr.startsWith(subTickerStartKey))
-      .map((subStr: string) => subStr.split(subTickerStartKey).pop().toUpperCase());
+      .filter((fSub: Subscription) => fSub.type === 'ticker')
+      .map((mSub: TickerSubscription) => mSub.symbol);
 
     allTickers
       .filter((pair: string) => {
@@ -411,38 +420,79 @@ export class Client {
 
   private shouldReconnectCandles(now: number) {
     const lastCandles = this.eventHandler.getLastCandles();
+    const allCandles = this.subscriptions.filter((fSub: Subscription) => fSub.type === 'candle');
 
-    Object.keys(lastCandles)
-      .filter((key: string) => {
-        const [, , interval] = key.split('-');
-        const triggerMs = parseDuration(interval) * this.triggerNbCandle;
-        const timeDiff = now - lastCandles[key].timestamp;
+    allCandles
+      .filter((candleSub: CandleSubscription) => {
+        const triggerMs = parseDuration(candleSub.interval) * this.triggerNbCandle;
+        const candleKeySubscription = getCandleSubscriptionKey(
+          candleSub.symbol,
+          candleSub.interval,
+        );
+
+        let timeDiff = now - candleSub.timestamp;
+
+        if (!lastCandles[candleKeySubscription] && timeDiff >= triggerMs) {
+          return true;
+        }
+
+        timeDiff = now - lastCandles[candleKeySubscription].timestamp;
 
         return timeDiff >= triggerMs;
       })
-      .forEach((key: string) => {
-        const [, symbol, interval] = key.split('-');
-
-        this.unsubscribeCandle(symbol, interval);
-        this.subscribeCandle(symbol, interval);
+      .forEach((candleSub: CandleSubscription) => {
+        this.unsubscribeCandle(candleSub.symbol, candleSub.interval);
+        this.subscribeCandle(candleSub.symbol, candleSub.interval);
       });
   }
 
-  private removeSubscription(index: string): void {
-    if (!this.subscriptions.includes(index)) {
-      return;
-    }
+  private addTickerSubscription(symbol: string): void {
+    const subscription: TickerSubscription = {
+      symbol,
+      type: 'ticker',
+      timestamp: Date.now(),
+    };
 
-    this.subscriptions = this.subscriptions.filter((fSub: string) => fSub !== index);
+    this.subscriptions.push(subscription);
     this.globalEmitSubscription();
   }
 
-  private addSubscription(index: string): void {
-    if (this.subscriptions.includes(index)) {
+  private removeTickerSubscription(symbol: string): void {
+    if (!this.hasTickerSubscription(symbol)) {
       return;
     }
 
-    this.subscriptions.push(index);
+    const indexSub = this.subscriptions.findIndex(
+      (fSub: Subscription) => fSub.type === 'ticker' && fSub.symbol === symbol,
+    );
+
+    this.subscriptions.splice(indexSub, 1);
+    this.globalEmitSubscription();
+  }
+
+  private addCandleSubscription(symbol: string, interval: string): void {
+    const subscription: CandleSubscription = {
+      symbol,
+      interval,
+      type: 'candle',
+      timestamp: Date.now(),
+    };
+
+    this.subscriptions.push(subscription);
+    this.globalEmitSubscription();
+  }
+
+  private removeCandleSubscription(symbol: string, interval: string): void {
+    if (!this.hasCandleSubscription(symbol, interval)) {
+      return;
+    }
+
+    const indexSub = this.subscriptions.findIndex(
+      (fSub: CandleSubscription) =>
+        fSub.type === 'candle' && fSub.symbol === symbol && fSub.interval === interval,
+    );
+
+    this.subscriptions.splice(indexSub, 1);
     this.globalEmitSubscription();
   }
 
@@ -469,18 +519,16 @@ export class Client {
       return;
     }
 
-    const previousSubs = [].concat(this.subscriptions);
+    const previousSubs: Subscription[] = [].concat(this.subscriptions);
     this.subscriptions.length = 0;
 
     for (const subscription of previousSubs) {
-      const [type, symbol, timeFrame] = subscription.split('-') as string[];
-
-      if (type === 'ticker') {
-        this.subscribeTicker(symbol);
+      if (subscription.type === 'ticker') {
+        this.subscribeTicker(subscription.symbol);
       }
 
-      if (type === 'candle') {
-        this.subscribeCandle(symbol, timeFrame);
+      if (subscription.type === 'candle') {
+        this.subscribeCandle(subscription.symbol, (subscription as CandleSubscription).interval);
       }
     }
   }
