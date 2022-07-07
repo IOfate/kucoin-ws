@@ -432,8 +432,8 @@ export class Client {
 
         let timeDiff = now - candleSub.timestamp;
 
-        if (!lastCandles[candleKeySubscription] && timeDiff >= triggerMs) {
-          return true;
+        if (!lastCandles[candleKeySubscription]) {
+          return timeDiff >= triggerMs;
         }
 
         timeDiff = now - lastCandles[candleKeySubscription].timestamp;
