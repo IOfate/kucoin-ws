@@ -69,11 +69,10 @@ class Client {
     }
     subscribeTicker(symbol) {
         const formatSymbol = symbol.replace('/', '-');
-        const indexSubscription = (0, util_1.getTickerSubscriptionKey)(symbol);
-        if (this.subscriptions.includes(indexSubscription)) {
+        if (this.hasTickerSubscription(symbol)) {
             return;
         }
-        this.addSubscription(indexSubscription);
+        this.addTickerSubscription(symbol);
         const subFn = () => {
             if (!this.ws.readyState) {
                 this.emitter.emit(this.emitChannel.SOCKET_NOT_READY, `socket not ready to subscribe ticker for: ${symbol}, retrying in ${this.retryTimeoutMs}ms`);
@@ -86,7 +85,7 @@ class Client {
                     if (result) {
                         return;
                     }
-                    this.removeSubscription(indexSubscription);
+                    this.removeTickerSubscription(symbol);
                     setTimeout(() => {
                         this.emitter.emit(this.emitChannel.RETRY_SUBSCRIPTION, `retry to subscribe ticker for: ${symbol}, retrying in ${this.retrySubscription}ms`);
                         this.subscribeTicker(symbol);
@@ -105,7 +104,7 @@ class Client {
                             this.emitter.emit(this.emitChannel.RETRY_SUBSCRIPTION, `retry to subscribe ticker for: ${symbol}, retrying in ${this.retrySubscription}ms`);
                             this.subscribeTicker(symbol);
                         }, this.retrySubscription).unref();
-                        return this.removeSubscription(indexSubscription);
+                        return this.removeTickerSubscription(symbol);
                     }
                 });
             });
@@ -119,8 +118,7 @@ class Client {
     unsubscribeTicker(symbol) {
         this.requireSocketToBeOpen();
         const formatSymbol = symbol.replace('/', '-');
-        const indexSubscription = (0, util_1.getTickerSubscriptionKey)(symbol);
-        if (!this.subscriptions.includes(indexSubscription)) {
+        if (!this.hasTickerSubscription(symbol)) {
             return;
         }
         this.queueProcessor.push(() => {
@@ -130,7 +128,7 @@ class Client {
                     this.eventHandler.deleteTickerCache(symbol);
                     return;
                 }
-                this.addSubscription(indexSubscription);
+                this.addTickerSubscription(symbol);
             });
             this.send(JSON.stringify({
                 id,
@@ -141,11 +139,11 @@ class Client {
             }), (error) => {
                 if (error) {
                     this.emitter.emit(this.emitChannel.ERROR, error);
-                    return this.addSubscription(indexSubscription);
+                    return this.addTickerSubscription(symbol);
                 }
             });
         });
-        this.removeSubscription(indexSubscription);
+        this.removeTickerSubscription(symbol);
     }
     subscribeCandle(symbol, interval) {
         const formatSymbol = symbol.replace('/', '-');
@@ -153,11 +151,10 @@ class Client {
         if (!formatInterval) {
             throw new TypeError(`Wrong format waiting for: ${Object.keys(const_1.mapCandleInterval).join(', ')}`);
         }
-        const indexSubscription = (0, util_1.getCandleSubscriptionKey)(symbol, interval);
-        if (this.subscriptions.includes(indexSubscription)) {
+        if (this.hasCandleSubscription(symbol, interval)) {
             return;
         }
-        this.addSubscription(indexSubscription);
+        this.addCandleSubscription(symbol, interval);
         const subFn = () => {
             if (!this.ws.readyState) {
                 this.emitter.emit(this.emitChannel.SOCKET_NOT_READY, `socket not ready to subscribe candle for: ${symbol} ${interval}, retrying in ${this.retryTimeoutMs}ms`);
@@ -170,7 +167,7 @@ class Client {
                     if (result) {
                         return;
                     }
-                    this.removeSubscription(indexSubscription);
+                    this.removeCandleSubscription(symbol, interval);
                     setTimeout(() => {
                         this.emitter.emit(this.emitChannel.RETRY_SUBSCRIPTION, `retry to subscribe candle for: ${symbol} ${interval}, retrying in ${this.retrySubscription}ms`);
                         this.subscribeCandle(symbol, interval);
@@ -189,7 +186,7 @@ class Client {
                             this.emitter.emit(this.emitChannel.RETRY_SUBSCRIPTION, `retry to subscribe candle for: ${symbol} ${interval}, retrying in ${this.retrySubscription}ms`);
                             this.subscribeCandle(symbol, interval);
                         }, this.retrySubscription).unref();
-                        return this.removeSubscription(indexSubscription);
+                        return this.removeCandleSubscription(symbol, interval);
                     }
                 });
             });
@@ -207,18 +204,18 @@ class Client {
         if (!formatInterval) {
             throw new TypeError(`Wrong format waiting for: ${Object.keys(const_1.mapCandleInterval).join(', ')}`);
         }
-        const indexSubscription = (0, util_1.getCandleSubscriptionKey)(symbol, interval);
-        if (!this.subscriptions.includes(indexSubscription)) {
+        if (!this.hasCandleSubscription(symbol, interval)) {
             return;
         }
+        this.removeCandleSubscription(symbol, interval);
         this.queueProcessor.push(() => {
             const id = `unsub-candle-${Date.now()}`;
             this.eventHandler.waitForEvent('ack', id, (result) => {
                 if (result) {
-                    this.eventHandler.deleteCandleCache(indexSubscription);
+                    this.eventHandler.deleteCandleCache((0, util_1.getCandleSubscriptionKey)(symbol, interval));
                     return;
                 }
-                this.addSubscription(indexSubscription);
+                this.addCandleSubscription(symbol, interval);
             });
             this.send(JSON.stringify({
                 id,
@@ -229,11 +226,10 @@ class Client {
             }), (error) => {
                 if (error) {
                     this.emitter.emit(this.emitChannel.ERROR, error);
-                    return this.addSubscription(indexSubscription);
+                    return this.addCandleSubscription(symbol, interval);
                 }
             });
         });
-        this.removeSubscription(indexSubscription);
     }
     closeConnection() {
         if (this.subscriptions.length) {
@@ -276,11 +272,21 @@ class Client {
         this.shouldReconnectTickers(now);
         this.shouldReconnectCandles(now);
     }
+    hasTickerSubscription(symbol) {
+        return this.subscriptions
+            .filter((fSub) => fSub.type === 'ticker')
+            .some((sSub) => sSub.symbol === symbol);
+    }
+    hasCandleSubscription(symbol, interval) {
+        return this.subscriptions
+            .filter((fSub) => fSub.type === 'candle')
+            .some((sSub) => sSub.symbol === symbol && sSub.interval === interval);
+    }
     shouldReconnectTickers(now) {
         const lastEmittedTickers = this.eventHandler.getLastTickers();
         const allTickers = this.subscriptions
-            .filter((subStr) => subStr.startsWith(const_1.subTickerStartKey))
-            .map((subStr) => subStr.split(const_1.subTickerStartKey).pop().toUpperCase());
+            .filter((fSub) => fSub.type === 'ticker')
+            .map((mSub) => mSub.symbol);
         allTickers
             .filter((pair) => {
             if (!lastEmittedTickers[pair]) {
@@ -296,31 +302,56 @@ class Client {
     }
     shouldReconnectCandles(now) {
         const lastCandles = this.eventHandler.getLastCandles();
-        Object.keys(lastCandles)
-            .filter((key) => {
-            const [, , interval] = key.split('-');
-            const triggerMs = (0, parse_duration_1.default)(interval) * this.triggerNbCandle;
-            const timeDiff = now - lastCandles[key].timestamp;
+        const allCandles = this.subscriptions.filter((fSub) => fSub.type === 'candle');
+        allCandles
+            .filter((candleSub) => {
+            const triggerMs = (0, parse_duration_1.default)(candleSub.interval) * this.triggerNbCandle;
+            const candleKeySubscription = (0, util_1.getCandleSubscriptionKey)(candleSub.symbol, candleSub.interval);
+            let timeDiff = now - candleSub.timestamp;
+            if (!lastCandles[candleKeySubscription] && timeDiff >= triggerMs) {
+                return true;
+            }
+            timeDiff = now - lastCandles[candleKeySubscription].timestamp;
             return timeDiff >= triggerMs;
         })
-            .forEach((key) => {
-            const [, symbol, interval] = key.split('-');
-            this.unsubscribeCandle(symbol, interval);
-            this.subscribeCandle(symbol, interval);
+            .forEach((candleSub) => {
+            this.unsubscribeCandle(candleSub.symbol, candleSub.interval);
+            this.subscribeCandle(candleSub.symbol, candleSub.interval);
         });
     }
-    removeSubscription(index) {
-        if (!this.subscriptions.includes(index)) {
-            return;
-        }
-        this.subscriptions = this.subscriptions.filter((fSub) => fSub !== index);
+    addTickerSubscription(symbol) {
+        const subscription = {
+            symbol,
+            type: 'ticker',
+            timestamp: Date.now(),
+        };
+        this.subscriptions.push(subscription);
         this.globalEmitSubscription();
     }
-    addSubscription(index) {
-        if (this.subscriptions.includes(index)) {
+    removeTickerSubscription(symbol) {
+        if (!this.hasTickerSubscription(symbol)) {
             return;
         }
-        this.subscriptions.push(index);
+        const indexSub = this.subscriptions.findIndex((fSub) => fSub.type === 'ticker' && fSub.symbol === symbol);
+        this.subscriptions.splice(indexSub, 1);
+        this.globalEmitSubscription();
+    }
+    addCandleSubscription(symbol, interval) {
+        const subscription = {
+            symbol,
+            interval,
+            type: 'candle',
+            timestamp: Date.now(),
+        };
+        this.subscriptions.push(subscription);
+        this.globalEmitSubscription();
+    }
+    removeCandleSubscription(symbol, interval) {
+        if (!this.hasCandleSubscription(symbol, interval)) {
+            return;
+        }
+        const indexSub = this.subscriptions.findIndex((fSub) => fSub.type === 'candle' && fSub.symbol === symbol && fSub.interval === interval);
+        this.subscriptions.splice(indexSub, 1);
         this.globalEmitSubscription();
     }
     send(data, sendCb = util_1.noop) {
@@ -341,12 +372,11 @@ class Client {
         const previousSubs = [].concat(this.subscriptions);
         this.subscriptions.length = 0;
         for (const subscription of previousSubs) {
-            const [type, symbol, timeFrame] = subscription.split('-');
-            if (type === 'ticker') {
-                this.subscribeTicker(symbol);
+            if (subscription.type === 'ticker') {
+                this.subscribeTicker(subscription.symbol);
             }
-            if (type === 'candle') {
-                this.subscribeCandle(symbol, timeFrame);
+            if (subscription.type === 'candle') {
+                this.subscribeCandle(subscription.symbol, subscription.interval);
             }
         }
     }

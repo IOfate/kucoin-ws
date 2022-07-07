@@ -109,20 +109,17 @@ class EventHandler {
         return candle;
     }
     processCandleUpdate(symbol, interval, rawCandle) {
-        const keyCandle = this.formatCandleKey(symbol, interval);
+        const keyCandle = (0, util_1.getCandleSubscriptionKey)(symbol, interval);
         const candle = this.getCandle(symbol, rawCandle);
         this.lastCandles[keyCandle] = candle;
     }
     processCandleAdd(symbol, interval, rawCandle) {
-        const keyCandle = this.formatCandleKey(symbol, interval);
+        const keyCandle = (0, util_1.getCandleSubscriptionKey)(symbol, interval);
         const candle = this.getCandle(symbol, rawCandle);
         if (this.lastCandles[keyCandle]) {
             this.emitter.emit(keyCandle, this.lastCandles[keyCandle]);
         }
         this.lastCandles[keyCandle] = candle;
-    }
-    formatCandleKey(symbol, interval) {
-        return `candle-${symbol}-${interval}`;
     }
 }
 exports.EventHandler = EventHandler;

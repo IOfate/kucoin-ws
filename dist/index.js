@@ -8,7 +8,6 @@ const emittery_1 = __importDefault(require("emittery"));
 const parse_duration_1 = __importDefault(require("parse-duration"));
 /** Root */
 const client_1 = require("./client");
-const util_1 = require("./util");
 class KuCoinWs extends emittery_1.default {
     constructor() {
         super();
@@ -23,7 +22,7 @@ class KuCoinWs extends emittery_1.default {
         return Promise.resolve();
     }
     subscribeTicker(symbol) {
-        const alreadySubscribed = this.clientList.some((client) => client.getSubscriptions().includes((0, util_1.getTickerSubscriptionKey)(symbol)));
+        const alreadySubscribed = this.clientList.some((client) => client.hasTickerSubscription(symbol));
         if (alreadySubscribed) {
             return;
         }
@@ -33,29 +32,27 @@ class KuCoinWs extends emittery_1.default {
         symbols.forEach((symbol) => this.subscribeTicker(symbol));
     }
     unsubscribeTicker(symbol) {
-        const alreadySubscribed = this.clientList.some((client) => client.getSubscriptions().includes((0, util_1.getTickerSubscriptionKey)(symbol)));
-        if (!alreadySubscribed) {
+        const client = this.clientList.find((client) => client.hasTickerSubscription(symbol));
+        if (!client) {
             return;
         }
-        const client = this.clientList.find((client) => client.getSubscriptions().includes((0, util_1.getTickerSubscriptionKey)(symbol)));
         client.unsubscribeTicker(symbol);
     }
     unsubscribeTickers(symbols) {
         symbols.forEach((symbol) => this.unsubscribeTicker(symbol));
     }
     subscribeCandle(symbol, interval) {
-        const alreadySubscribed = this.clientList.some((client) => client.getSubscriptions().includes((0, util_1.getCandleSubscriptionKey)(symbol, interval)));
+        const alreadySubscribed = this.clientList.some((client) => client.hasCandleSubscription(symbol, interval));
         if (alreadySubscribed) {
             return;
         }
         this.getLastClient().subscribeCandle(symbol, interval);
     }
     unsubscribeCandle(symbol, interval) {
-        const alreadySubscribed = this.clientList.some((client) => client.getSubscriptions().includes((0, util_1.getCandleSubscriptionKey)(symbol, interval)));
-        if (!alreadySubscribed) {
+        const client = this.clientList.find((client) => client.hasCandleSubscription(symbol, interval));
+        if (!client) {
             return;
         }
-        const client = this.clientList.find((client) => client.getSubscriptions().includes((0, util_1.getCandleSubscriptionKey)(symbol, interval)));
         client.unsubscribeCandle(symbol, interval);
     }
     closeConnection() {

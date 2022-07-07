@@ -1,4 +1,5 @@
 import Emittery from 'emittery';
+import { Subscription } from './models/subscription.model';
 export declare class Client {
     private readonly emitter;
     private readonly globalEmitSubscription;
@@ -36,13 +37,17 @@ export declare class Client {
     isSocketOpen(): boolean;
     isSocketConnecting(): boolean;
     getSubscriptionNumber(): number;
-    getSubscriptions(): string[];
+    getSubscriptions(): Subscription[];
     receivedPongRecently(): boolean;
     shouldReconnectDeadSockets(): void;
+    hasTickerSubscription(symbol: string): boolean;
+    hasCandleSubscription(symbol: string, interval: string): boolean;
     private shouldReconnectTickers;
     private shouldReconnectCandles;
-    private removeSubscription;
-    private addSubscription;
+    private addTickerSubscription;
+    private removeTickerSubscription;
+    private addCandleSubscription;
+    private removeCandleSubscription;
     private send;
     private restartPreviousSubscriptions;
     private requireSocketToBeOpen;

@@ -24,5 +24,4 @@ export declare class EventHandler {
     private getCandle;
     private processCandleUpdate;
     private processCandleAdd;
-    private formatCandleKey;
 }

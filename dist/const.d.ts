@@ -12,4 +12,3 @@ export declare const mapCandleInterval: {
     '1d': string;
     '1w': string;
 };
-export declare const subTickerStartKey = "ticker-";
