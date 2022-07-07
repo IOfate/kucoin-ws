@@ -308,8 +308,8 @@ class Client {
             const triggerMs = (0, parse_duration_1.default)(candleSub.interval) * this.triggerNbCandle;
             const candleKeySubscription = (0, util_1.getCandleSubscriptionKey)(candleSub.symbol, candleSub.interval);
             let timeDiff = now - candleSub.timestamp;
-            if (!lastCandles[candleKeySubscription] && timeDiff >= triggerMs) {
-                return true;
+            if (!lastCandles[candleKeySubscription]) {
+                return timeDiff >= triggerMs;
             }
             timeDiff = now - lastCandles[candleKeySubscription].timestamp;
             return timeDiff >= triggerMs;
