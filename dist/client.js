@@ -268,6 +268,9 @@ class Client {
         return timeDiff < this.disconnectedTrigger;
     }
     shouldReconnectDeadSockets() {
+        if (!this.isSocketOpen()) {
+            return;
+        }
         const now = Date.now();
         this.shouldReconnectTickers(now);
         this.shouldReconnectCandles(now);
@@ -381,7 +384,7 @@ class Client {
         }
     }
     requireSocketToBeOpen() {
-        if (!this.socketOpen) {
+        if (!this.isSocketOpen()) {
             throw new Error('Please call connect before subscribing');
         }
     }
