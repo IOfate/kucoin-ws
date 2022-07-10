@@ -378,6 +378,10 @@ export class Client {
   }
 
   shouldReconnectDeadSockets() {
+    if (!this.isSocketOpen()) {
+      return;
+    }
+
     const now = Date.now();
 
     this.shouldReconnectTickers(now);
@@ -534,7 +538,7 @@ export class Client {
   }
 
   private requireSocketToBeOpen(): void {
-    if (!this.socketOpen) {
+    if (!this.isSocketOpen()) {
       throw new Error('Please call connect before subscribing');
     }
   }
