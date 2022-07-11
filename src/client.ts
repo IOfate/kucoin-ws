@@ -31,6 +31,7 @@ export class Client {
     SOCKET_NOT_READY: 'socket-not-ready',
     SUBSCRIPTIONS: 'subscriptions',
     RETRY_SUBSCRIPTION: 'retry-subscription',
+    RECONNECT_CANDLE: 'reconnect-candle',
   };
   private ws: WebSocket;
   private socketOpen: boolean;
@@ -371,8 +372,7 @@ export class Client {
       return true;
     }
 
-    const now = Date.now();
-    const timeDiff = now - this.lastPongReceived;
+    const timeDiff = Date.now() - this.lastPongReceived;
 
     return timeDiff < this.disconnectedTrigger;
   }
@@ -447,6 +447,7 @@ export class Client {
       .forEach((candleSub: CandleSubscription) => {
         this.unsubscribeCandle(candleSub.symbol, candleSub.interval);
         this.subscribeCandle(candleSub.symbol, candleSub.interval);
+        this.emitter.emit(this.emitChannel.RECONNECT_CANDLE, candleSub);
       });
   }
 

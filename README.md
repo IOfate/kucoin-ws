@@ -70,6 +70,7 @@ There are several events which are emitted in different contexts.
 - `reconnect`: emitted when a reconnection occurred
 - `retry-subscription`: emitted event when we retry to subscribe
 - `error`: emitted when an error occurred
+- `reconnect-candle`: emitted when a candle socket reconnect. Value emitted: `{ symbol: string; interval: string; }`
 
 ```js
 import { KuCoinWs } from '@iofate/kucoin-ws';
