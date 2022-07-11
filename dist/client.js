@@ -31,6 +31,7 @@ class Client {
             SOCKET_NOT_READY: 'socket-not-ready',
             SUBSCRIPTIONS: 'subscriptions',
             RETRY_SUBSCRIPTION: 'retry-subscription',
+            RECONNECT_CANDLE: 'reconnect-candle',
         };
         this.subscriptions = [];
         this.socketOpen = false;
@@ -263,8 +264,7 @@ class Client {
         if (this.socketConnecting) {
             return true;
         }
-        const now = Date.now();
-        const timeDiff = now - this.lastPongReceived;
+        const timeDiff = Date.now() - this.lastPongReceived;
         return timeDiff < this.disconnectedTrigger;
     }
     shouldReconnectDeadSockets() {
@@ -320,6 +320,7 @@ class Client {
             .forEach((candleSub) => {
             this.unsubscribeCandle(candleSub.symbol, candleSub.interval);
             this.subscribeCandle(candleSub.symbol, candleSub.interval);
+            this.emitter.emit(this.emitChannel.RECONNECT_CANDLE, candleSub);
         });
     }
     addTickerSubscription(symbol) {
