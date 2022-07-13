@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.8.0](https://github.com/IOfate/kucoin-ws/compare/v1.7.2...v1.8.0) (2022-07-13)
+
+
+### Features
+
+* **client:** emit a event when a candle socket reconnect ([14ad614](https://github.com/IOfate/kucoin-ws/commit/14ad614bf90040ec3c7c88797d391fc8c3b34a8e))
+
+
+### Bug Fixes
+
+* **candle:** awake dead candle socket when no candle emitted ([941cc1f](https://github.com/IOfate/kucoin-ws/commit/941cc1f8d6ac13a45efd73378549b755c49a93f4))
+* **candles:** check sub timestamp if no candle in cache ([c3062f3](https://github.com/IOfate/kucoin-ws/commit/c3062f3a69827f7ea44e087167263519ceda69cb))
+* **client:** should not reconnect dead sockets if ws not open ([1e59462](https://github.com/IOfate/kucoin-ws/commit/1e59462d46fb8db3d8469c1406b9ac0cad58f916))
+* **core:** restart sub ticker with no emitted values ([abce0b0](https://github.com/IOfate/kucoin-ws/commit/abce0b0e766b013e790601ff2a6e74607bd668c3))
+
 ### [1.7.2](https://github.com/IOfate/kucoin-ws/compare/v1.7.1...v1.7.2) (2022-07-06)
 
 
