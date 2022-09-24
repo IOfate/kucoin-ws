@@ -21,6 +21,29 @@ class KuCoinWs extends emittery_1.default {
         this.getLastClient();
         return Promise.resolve();
     }
+    subscribeSnapshot(symbol) {
+        this.requireSocketToBeOpen();
+        const formatSymbol = symbol.replace('/', '-');
+        const indexSubscription = `snapshot-${symbol}`;
+        if (this.subscriptions.includes(indexSubscription)) {
+            return;
+        }
+        this.subscriptions.push(indexSubscription);
+        this.emit('subscriptions', this.subscriptions);
+        if (!this.ws.readyState) {
+            this.emit('socket-not-ready', `socket not ready to subscribe snapshot for: ${symbol}`);
+            return;
+        }
+        this.queueProcessor.push(() => {
+            this.send(JSON.stringify({
+                id: Date.now(),
+                type: 'subscribe',
+                topic: `/market/snapshot:${formatSymbol}`,
+                privateChannel: false,
+                response: true,
+            }));
+        });
+    }
     subscribeTicker(symbol) {
         const alreadySubscribed = this.clientList.some((client) => client.hasTickerSubscription(symbol));
         if (alreadySubscribed) {
