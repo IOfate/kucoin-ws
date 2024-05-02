@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.mapCandleInterval = void 0;
-exports.mapCandleInterval = {
+export const mapCandleInterval = {
     '1m': '1min',
     '3m': '3min',
     '15m': '15min',

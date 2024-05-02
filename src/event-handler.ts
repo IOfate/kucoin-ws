@@ -1,14 +1,14 @@
 import Emittery from 'emittery';
 
 /** Root */
-import { mapCandleInterval } from './const';
-import { getCandleSubscriptionKey, noop } from './util';
+import { mapCandleInterval } from './const.js';
+import { getCandleSubscriptionKey, noop } from './util.js';
 
 /** Models */
-import { MessageData } from './models/message-data.model';
-import { RawTicker } from './models/raw-ticker';
-import { Ticker } from './models/ticker';
-import { Candle } from './models/candle';
+import { MessageData } from './models/message-data.model.js';
+import { RawTicker } from './models/raw-ticker.js';
+import { Ticker } from './models/ticker.js';
+import { Candle } from './models/candle.js';
 
 export class EventHandler {
   private readonly maxWaiting = 2000;

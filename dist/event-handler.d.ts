@@ -1,6 +1,6 @@
 import Emittery from 'emittery';
-import { Ticker } from './models/ticker';
-import { Candle } from './models/candle';
+import { Ticker } from './models/ticker.js';
+import { Candle } from './models/candle.js';
 export declare class EventHandler {
     private readonly emitter;
     private readonly maxWaiting;

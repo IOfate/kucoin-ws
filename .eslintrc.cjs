@@ -72,6 +72,7 @@ module.exports = {
     'import/no-default-export': 'error',
     'import/exports-last': 'error',
     'import/no-deprecated': 'error',
+    'import/no-unresolved': 'off',
     'unicorn/filename-case': ['error', { case: 'kebabCase' }],
   },
 };

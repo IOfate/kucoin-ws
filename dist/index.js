@@ -1,20 +1,14 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.KuCoinWs = void 0;
-const emittery_1 = __importDefault(require("emittery"));
-const parse_duration_1 = __importDefault(require("parse-duration"));
+import Emittery from 'emittery';
+import parseDuration from 'parse-duration';
 /** Root */
-const client_1 = require("./client");
-class KuCoinWs extends emittery_1.default {
+import { Client } from './client.js';
+export class KuCoinWs extends Emittery {
     constructor() {
         super();
         this.clientList = [];
         this.maxSubscriptions = 98;
         this.subscriptionsEvent = 'subscriptions';
-        this.intervalCheckConnection = (0, parse_duration_1.default)('32s');
+        this.intervalCheckConnection = parseDuration('32s');
         this.launchTimerDisconnected();
     }
     connect() {
@@ -83,7 +77,7 @@ class KuCoinWs extends emittery_1.default {
     getLastClient() {
         const lastClient = this.clientList[this.clientList.length - 1];
         if (!lastClient || lastClient.getSubscriptionNumber() >= this.maxSubscriptions) {
-            const newClient = new client_1.Client(this, () => this.emitSubscriptions());
+            const newClient = new Client(this, () => this.emitSubscriptions());
             this.launchTimerDisconnected();
             this.clientList.push(newClient);
             newClient.connect();
@@ -105,5 +99,4 @@ class KuCoinWs extends emittery_1.default {
         }
     }
 }
-exports.KuCoinWs = KuCoinWs;
 //# sourceMappingURL=index.js.map

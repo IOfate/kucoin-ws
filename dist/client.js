@@ -1,29 +1,23 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Client = void 0;
-const crypto_1 = require("crypto");
-const ws_1 = __importDefault(require("ws"));
-const got_1 = __importDefault(require("got"));
-const queue_1 = __importDefault(require("queue"));
-const parse_duration_1 = __importDefault(require("parse-duration"));
+import { randomBytes } from 'crypto';
+import WebSocket from 'ws';
+import got from 'got';
+import Queue from 'queue';
+import parseDuration from 'parse-duration';
 /** Root */
-const util_1 = require("./util");
-const const_1 = require("./const");
-const event_handler_1 = require("./event-handler");
-class Client {
+import { delay, getCandleSubscriptionKey, noop } from './util.js';
+import { mapCandleInterval } from './const.js';
+import { EventHandler } from './event-handler.js';
+export class Client {
     constructor(emitter, globalEmitSubscription) {
         this.emitter = emitter;
         this.globalEmitSubscription = globalEmitSubscription;
-        this.queueProcessor = (0, queue_1.default)({ concurrency: 1, timeout: 250, autostart: true });
+        this.queueProcessor = new Queue({ concurrency: 1, timeout: 250, autostart: true });
         this.rootApi = 'openapi-v2.kucoin.com';
         this.publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
         this.lengthConnectId = 24;
-        this.retryTimeoutMs = (0, parse_duration_1.default)('5s');
-        this.retrySubscription = (0, parse_duration_1.default)('2s');
-        this.triggerTickerDisconnected = (0, parse_duration_1.default)('6m');
+        this.retryTimeoutMs = parseDuration('5s');
+        this.retrySubscription = parseDuration('2s');
+        this.triggerTickerDisconnected = parseDuration('6m');
         this.triggerNbCandle = 2;
         this.emitChannel = {
             ERROR: 'error',
@@ -36,12 +30,12 @@ class Client {
         this.subscriptions = [];
         this.socketOpen = false;
         this.askingClose = false;
-        this.eventHandler = new event_handler_1.EventHandler(emitter);
+        this.eventHandler = new EventHandler(emitter);
     }
     async connect() {
         this.lastPongReceived = Date.now();
         this.socketConnecting = true;
-        const response = await got_1.default
+        const response = await got
             .post(this.publicBulletEndPoint, { headers: { host: this.rootApi } })
             .json();
         if (!response.data || !response.data.token) {
@@ -54,7 +48,7 @@ class Client {
         const { endpoint, pingInterval } = instanceServers[0];
         this.askingClose = false;
         this.eventHandler.clearCache();
-        this.connectId = (0, crypto_1.randomBytes)(this.lengthConnectId).toString('hex');
+        this.connectId = randomBytes(this.lengthConnectId).toString('hex');
         this.pingIntervalMs = pingInterval;
         this.disconnectedTrigger = pingInterval * 2;
         this.publicToken = token;
@@ -148,9 +142,9 @@ class Client {
     }
     subscribeCandle(symbol, interval) {
         const formatSymbol = symbol.replace('/', '-');
-        const formatInterval = const_1.mapCandleInterval[interval];
+        const formatInterval = mapCandleInterval[interval];
         if (!formatInterval) {
-            throw new TypeError(`Wrong format waiting for: ${Object.keys(const_1.mapCandleInterval).join(', ')}`);
+            throw new TypeError(`Wrong format waiting for: ${Object.keys(mapCandleInterval).join(', ')}`);
         }
         if (this.hasCandleSubscription(symbol, interval)) {
             return;
@@ -201,9 +195,9 @@ class Client {
     unsubscribeCandle(symbol, interval) {
         this.requireSocketToBeOpen();
         const formatSymbol = symbol.replace('/', '-');
-        const formatInterval = const_1.mapCandleInterval[interval];
+        const formatInterval = mapCandleInterval[interval];
         if (!formatInterval) {
-            throw new TypeError(`Wrong format waiting for: ${Object.keys(const_1.mapCandleInterval).join(', ')}`);
+            throw new TypeError(`Wrong format waiting for: ${Object.keys(mapCandleInterval).join(', ')}`);
         }
         if (!this.hasCandleSubscription(symbol, interval)) {
             return;
@@ -213,7 +207,7 @@ class Client {
             const id = `unsub-candle-${Date.now()}`;
             this.eventHandler.waitForEvent('ack', id, (result) => {
                 if (result) {
-                    this.eventHandler.deleteCandleCache((0, util_1.getCandleSubscriptionKey)(symbol, interval));
+                    this.eventHandler.deleteCandleCache(getCandleSubscriptionKey(symbol, interval));
                     return;
                 }
                 this.addCandleSubscription(symbol, interval);
@@ -308,8 +302,8 @@ class Client {
         const allCandles = this.subscriptions.filter((fSub) => fSub.type === 'candle');
         allCandles
             .filter((candleSub) => {
-            const triggerMs = (0, parse_duration_1.default)(candleSub.interval) * this.triggerNbCandle;
-            const candleKeySubscription = (0, util_1.getCandleSubscriptionKey)(candleSub.symbol, candleSub.interval);
+            const triggerMs = parseDuration(candleSub.interval) * this.triggerNbCandle;
+            const candleKeySubscription = getCandleSubscriptionKey(candleSub.symbol, candleSub.interval);
             let timeDiff = now - candleSub.timestamp;
             if (!lastCandles[candleKeySubscription]) {
                 return timeDiff >= triggerMs;
@@ -358,7 +352,7 @@ class Client {
         this.subscriptions.splice(indexSub, 1);
         this.globalEmitSubscription();
     }
-    send(data, sendCb = util_1.noop) {
+    send(data, sendCb = noop) {
         if (!this.ws) {
             return;
         }
@@ -411,7 +405,7 @@ class Client {
         clearInterval(this.pingTimer);
     }
     async reconnect() {
-        await (0, util_1.delay)(this.retryTimeoutMs);
+        await delay(this.retryTimeoutMs);
         this.emitter.emit(this.emitChannel.RECONNECT, `reconnect with ${this.subscriptions.length} sockets...`);
         this.connect();
     }
@@ -420,7 +414,7 @@ class Client {
             return;
         }
         this.queueProcessor.start();
-        this.ws = new ws_1.default(this.wsPath, {
+        this.ws = new WebSocket(this.wsPath, {
             perMessageDeflate: false,
             handshakeTimeout: this.retryTimeoutMs,
         });
@@ -458,5 +452,4 @@ class Client {
         });
     }
 }
-exports.Client = Client;
 //# sourceMappingURL=client.js.map

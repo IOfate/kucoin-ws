@@ -1,14 +1,17 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "CommonJS",
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext",
     "declaration": true,
     "esModuleInterop": true,
     "removeComments": false,
     "preserveConstEnums": true,
     "sourceMap": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "skipLibCheck": true,
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": ["src/**/*"],
-  "exclude": []
+  "exclude": ["node_modules"]
 }

@@ -1,11 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCandleSubscriptionKey = exports.noop = exports.delay = void 0;
-const delay = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
-exports.delay = delay;
+export const delay = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
 // eslint-disable-next-line
-const noop = () => { };
-exports.noop = noop;
-const getCandleSubscriptionKey = (symbol, interval) => `candle-${symbol}-${interval}`;
-exports.getCandleSubscriptionKey = getCandleSubscriptionKey;
+export const noop = () => { };
+export const getCandleSubscriptionKey = (symbol, interval) => `candle-${symbol}-${interval}`;
 //# sourceMappingURL=util.js.map

@@ -1,5 +1,5 @@
 import Emittery from 'emittery';
-import { Subscription } from './models/subscription.model';
+import { Subscription } from './models/subscription.model.js';
 export declare class Client {
     private readonly emitter;
     private readonly globalEmitSubscription;

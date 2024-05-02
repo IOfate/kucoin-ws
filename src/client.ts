@@ -2,22 +2,22 @@ import { randomBytes } from 'crypto';
 import Emittery from 'emittery';
 import WebSocket from 'ws';
 import got from 'got';
-import queue from 'queue';
+import Queue from 'queue';
 import parseDuration from 'parse-duration';
 
 /** Models */
-import { PublicToken } from './models/public-token.model';
-import { Subscription } from './models/subscription.model';
-import { TickerSubscription } from './models/ticker-subscription.model';
-import { CandleSubscription } from './models/candle-subscription.model';
+import { PublicToken } from './models/public-token.model.js';
+import { Subscription } from './models/subscription.model.js';
+import { TickerSubscription } from './models/ticker-subscription.model.js';
+import { CandleSubscription } from './models/candle-subscription.model.js';
 
 /** Root */
-import { delay, getCandleSubscriptionKey, noop } from './util';
-import { mapCandleInterval } from './const';
-import { EventHandler } from './event-handler';
+import { delay, getCandleSubscriptionKey, noop } from './util.js';
+import { mapCandleInterval } from './const.js';
+import { EventHandler } from './event-handler.js';
 
 export class Client {
-  private readonly queueProcessor = queue({ concurrency: 1, timeout: 250, autostart: true });
+  private readonly queueProcessor = new Queue({ concurrency: 1, timeout: 250, autostart: true });
   private readonly rootApi = 'openapi-v2.kucoin.com';
   private readonly publicBulletEndPoint = 'https://openapi-v2.kucoin.com/api/v1/bullet-public';
   private readonly lengthConnectId = 24;
@@ -39,7 +39,7 @@ export class Client {
   private askingClose: boolean;
   private connectId: string;
   private pingIntervalMs: number;
-  private pingTimer: NodeJS.Timer;
+  private pingTimer: NodeJS.Timeout;
   private wsPath: string;
   private publicToken: string;
   private subscriptions: Subscription[] = [];

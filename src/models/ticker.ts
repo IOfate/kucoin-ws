@@ -1,4 +1,4 @@
-import { RawTicker } from './raw-ticker';
+import { RawTicker } from './raw-ticker.js';
 
 export interface Ticker {
   symbol: string;

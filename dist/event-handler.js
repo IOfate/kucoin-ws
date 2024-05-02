@@ -1,10 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.EventHandler = void 0;
 /** Root */
-const const_1 = require("./const");
-const util_1 = require("./util");
-class EventHandler {
+import { mapCandleInterval } from './const.js';
+import { getCandleSubscriptionKey, noop } from './util.js';
+export class EventHandler {
     constructor(emitter) {
         this.emitter = emitter;
         this.maxWaiting = 2000;
@@ -13,7 +10,7 @@ class EventHandler {
         this.mapResolveWaitEvent = {};
         this.lastTickers = {};
     }
-    waitForEvent(event, id, callback = util_1.noop) {
+    waitForEvent(event, id, callback = noop) {
         const eventKey = `${event}-${id}`;
         return new Promise((resolve) => {
             const cb = (result) => {
@@ -86,8 +83,8 @@ class EventHandler {
         this.emitter.emit(`ticker-${symbol}`, ticker);
     }
     reverseInterval(kuCoinInterval) {
-        const keyArray = Object.keys(const_1.mapCandleInterval);
-        const valueArray = Object.values(const_1.mapCandleInterval);
+        const keyArray = Object.keys(mapCandleInterval);
+        const valueArray = Object.values(mapCandleInterval);
         const index = valueArray.indexOf(kuCoinInterval);
         if (index === -1) {
             throw new Error(`Unable to map KuCoin candle interval: ${kuCoinInterval}`);
@@ -109,12 +106,12 @@ class EventHandler {
         return candle;
     }
     processCandleUpdate(symbol, interval, rawCandle) {
-        const keyCandle = (0, util_1.getCandleSubscriptionKey)(symbol, interval);
+        const keyCandle = getCandleSubscriptionKey(symbol, interval);
         const candle = this.getCandle(symbol, rawCandle);
         this.lastCandles[keyCandle] = candle;
     }
     processCandleAdd(symbol, interval, rawCandle) {
-        const keyCandle = (0, util_1.getCandleSubscriptionKey)(symbol, interval);
+        const keyCandle = getCandleSubscriptionKey(symbol, interval);
         const candle = this.getCandle(symbol, rawCandle);
         if (this.lastCandles[keyCandle]) {
             this.emitter.emit(keyCandle, this.lastCandles[keyCandle]);
@@ -122,5 +119,4 @@ class EventHandler {
         this.lastCandles[keyCandle] = candle;
     }
 }
-exports.EventHandler = EventHandler;
 //# sourceMappingURL=event-handler.js.map
